@@ -6,9 +6,11 @@ library(readxl)
 library(readr)
 library(stringr)
 
+
 ### MEGA JOURNALS DATAFRAME CONSTRUCTION
 # OpenAlex upload
 openalex_data <- read.csv("~/Desktop/Local.Journals/OpenAlex.csv")
+
 
 # MJL upload and data mining
 mjl_data <- read.csv("~/Desktop/Local.Journals/MJL.csv")
@@ -16,12 +18,23 @@ mjl_data <- mjl_data %>% distinct()
 mjl_data <- mjl_data %>% group_by(journal_name, issn, eissn) %>%
                          summarise(across(everything(), ~ paste(unique(.), collapse = ";")), .groups = "drop")
 
+
+# JCR upload and data mining
+jcr_data <- list.files(path = "~/Desktop/Local.Journals/JCR", pattern = "VictoriaDi.*JCR_JournalResults.*", full.names = TRUE)
+jcr_data <- rbindlist(lapply(jcr_data, fread, sep = ","), fill = TRUE)
+jcr_data <- jcr_data %>% group_by(`Journal name`, `JCR Abbreviation`, Publisher, ISSN, eISSN) %>%
+  summarise(across(everything(), ~ paste(unique(.), collapse = ";")), .groups = "drop")
+jcr_data <- jcr_data %>% rename(journal_name = `Journal name`, issn = ISSN, eissn = eISSN)
+jcr_data[jcr_data == "N/A"] <- NA
+
+
 # Scopus upload and data mining
 scopus_data <- readxl::read_excel("~/Desktop/Local.Journals/Scopus.xlsx")
 scopus_data <- scopus_data %>% group_by(journal_name, issn, eissn) %>%
                                summarise(across(everything(), ~ paste(unique(.), collapse = ";")), .groups = "drop")
 scopus_data$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", scopus_data$issn)
 scopus_data$eissn <- sub("^(.{4})(.{4})$", "\\1-\\2", scopus_data$eissn)
+
 
 # DOAJ upload and data mining
 doaj_data <- read.csv("~/Desktop/Local.Journals/DOAJ.csv")
@@ -34,6 +47,7 @@ doaj_data$eissn <- ifelse(!is.na(doaj_data$eissn) & doaj_data$eissn != "",
 doaj_data$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", doaj_data$issn)
 doaj_data$eissn <- sub("^(.{4})(.{4})$", "\\1-\\2", doaj_data$eissn)
 
+
 # SJR upload and data mining
 sjr_data <- readxl::read_excel("~/Desktop/Local.Journals/SJR.xlsx")
 sjr_data <- sjr_data %>% separate(eissn, into = c("eissn", "issn"), sep = ", ", extra = "merge", fill = "right") %>%
@@ -43,33 +57,51 @@ sjr_data <- sjr_data %>% group_by(journal_name, issn, eissn) %>%
 sjr_data$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", sjr_data$issn)
 sjr_data$eissn <- sub("^(.{4})(.{4})$", "\\1-\\2", sjr_data$eissn)
 
-# JCR upload and data mining
-jcr_data <- list.files(path = "~/Desktop/Local.Journals/JCR", pattern = "VictoriaDi.*JCR_JournalResults.*", full.names = TRUE)
-jcr_data <- rbindlist(lapply(jcr_data, fread, sep = ","), fill = TRUE)
-jcr_data <- jcr_data %>% group_by(`Journal name`, `JCR Abbreviation`, Publisher, ISSN, eISSN) %>%
-                         summarise(across(everything(), ~ paste(unique(.), collapse = ";")), .groups = "drop")
-jcr_data <- jcr_data %>% rename(journal_name = `Journal name`, issn = ISSN, eissn = eISSN)
-jcr_data[jcr_data == "N/A"] <- NA
+
+# CWTS upload
+cwts_data <- readxl::read_excel("~/Desktop/Local.Journals/CWTS.xlsx")
+
 
 # add unique identifiers to each dataframe
-openalex_data <- openalex_data %>% mutate(OpenAlex_ID = paste0("OpenAlex", row_number())) %>%
-                                   relocate(OpenAlex_ID)
+openalex_data <- openalex_data %>% mutate(OA_ID = paste0("OA", row_number())) %>%
+                                   relocate(OA_ID)
 mjl_data <- mjl_data %>% mutate(MJL_ID = paste0("MJL", row_number())) %>%
                          relocate(MJL_ID)
-scopus_data <- scopus_data %>% mutate(Scopus_ID = paste0("Scopus", row_number())) %>%
-                               relocate(Scopus_ID)
+jcr_data <- jcr_data %>% mutate(JCR_ID = paste0("JCR", row_number())) %>%
+                         relocate(JCR_ID)
+scopus_data <- scopus_data %>% mutate(SCOP_ID = paste0("SCOP", row_number())) %>%
+                               relocate(SCOP_ID)
 doaj_data <- doaj_data %>% mutate(DOAJ_ID = paste0("DOAJ", row_number())) %>%
                            relocate(DOAJ_ID)
 sjr_data <- sjr_data %>% mutate(SJR_ID = paste0("SJR", row_number())) %>%
                           relocate(SJR_ID)
-jcr_data <- jcr_data %>% mutate(JCR_ID = paste0("JCR", row_number())) %>%
-                         relocate(JCR_ID)
+cwts_data <- cwts_data %>% mutate(CWTS_ID = paste0("CWTS", row_number())) %>%
+                           relocate(CWTS_ID)
+
+
+# select, rename and organize all variables per dataframe
+openalex_data <- openalex_data %>% select(OA_ID = OA_ID,
+                                          OA_source_ID = journal_id,
+                                          OA_ISSN_codes = issn_codes,
+                                          OA_journal_name = journal_name)
+
+mjl_data
+jcr_data
+scopus_data          ### SEGUIR POR ACÁ
+doaj_data
+sjr_data
+cwts_data
+
+
 
 # create variable to unify all ISSN codes per dataframe
 openalex_data$issn_codes <- apply(openalex_data[, c("issn", "issn_l")], 1, function(x) {
                                   unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
                                   paste(unique_values, collapse = ";")})
 mjl_data$issn_codes <- apply(mjl_data[, c("issn", "eissn")], 1, function(x) {
+                             unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
+                             paste(unique_values, collapse = ";")})
+jcr_data$issn_codes <- apply(jcr_data[, c("issn", "eissn")], 1, function(x) {
                              unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
                              paste(unique_values, collapse = ";")})
 scopus_data$issn_codes <- apply(scopus_data[, c("issn", "eissn")], 1, function(x) {
@@ -81,9 +113,7 @@ doaj_data$issn_codes <- apply(doaj_data[, c("issn", "eissn")], 1, function(x) {
 sjr_data$issn_codes <- apply(sjr_data[, c("issn", "eissn")], 1, function(x) {
                              unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
                              paste(unique_values, collapse = ";")})
-jcr_data$issn_codes <- apply(jcr_data[, c("issn", "eissn")], 1, function(x) {
-                             unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
-                             paste(unique_values, collapse = ";")})
+
 
 
 # TRATAMIENTO DE LOS DISTINTOS ISSNS, TAL VEZ LO MEJOR SEA CONSERVARLOS TODOS, INDEPENDIENTEMENTE DE SU TIPO, Y PROGRAMAR EL MATCHEO POR CUALQUIERA DE ELLOS
@@ -91,6 +121,12 @@ jcr_data$issn_codes <- apply(jcr_data[, c("issn", "eissn")], 1, function(x) {
 
 # standardize all journal_name variables to ensure accurate comparisons
 mjl_data <- mjl_data %>% mutate(journal_name = journal_name %>%
+                                  toupper() %>%
+                                  str_replace_all("[[:punct:]]", "") %>%
+                                  str_replace_all(" ", "") %>%
+                                  stringi::stri_trans_general("Latin-ASCII") %>%
+                                  iconv(from = "UTF-8", to = "ASCII", sub = ""))
+jcr_data <- jcr_data %>% mutate(journal_name = journal_name %>%
                                   toupper() %>%
                                   str_replace_all("[[:punct:]]", "") %>%
                                   str_replace_all(" ", "") %>%
@@ -114,12 +150,7 @@ sjr_data <- sjr_data %>% mutate(journal_name = journal_name %>%
                                   str_replace_all(" ", "") %>%
                                   stringi::stri_trans_general("Latin-ASCII") %>%
                                   iconv(from = "UTF-8", to = "ASCII", sub = ""))
-jcr_data <- jcr_data %>% mutate(journal_name = journal_name %>%
-                                  toupper() %>%
-                                  str_replace_all("[[:punct:]]", "") %>%
-                                  str_replace_all(" ", "") %>%
-                                  stringi::stri_trans_general("Latin-ASCII") %>%
-                                  iconv(from = "UTF-8", to = "ASCII", sub = ""))
+
 
 
 
