@@ -30,6 +30,7 @@ jcr_data[jcr_data == "N/A"] <- NA
 
 # Scopus upload and data mining
 scopus_data <- readxl::read_excel("~/Desktop/Local.Journals/Scopus.xlsx")
+scopus_data[scopus_data == "NA"] <- NA
 scopus_data <- scopus_data %>% group_by(journal_name, issn, eissn) %>%
                                summarise(across(everything(), ~ paste(unique(.), collapse = ";")), .groups = "drop")
 scopus_data$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", scopus_data$issn)
@@ -79,40 +80,81 @@ cwts_data <- cwts_data %>% mutate(CWTS_ID = paste0("CWTS", row_number())) %>%
                            relocate(CWTS_ID)
 
 
-# select, rename and organize all variables per dataframe
-openalex_data <- openalex_data %>% select(OA_ID = OA_ID,
-                                          OA_source_ID = journal_id,
-                                          OA_ISSN_codes = issn_codes,
-                                          OA_journal_name = journal_name)
-
-mjl_data
-jcr_data
-scopus_data          ### SEGUIR POR ACÁ
-doaj_data
-sjr_data
-cwts_data
-
-
-
 # create variable to unify all ISSN codes per dataframe
 openalex_data$issn_codes <- apply(openalex_data[, c("issn", "issn_l")], 1, function(x) {
-                                  unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
-                                  paste(unique_values, collapse = ";")})
+  unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
+  paste(unique_values, collapse = ";")})
 mjl_data$issn_codes <- apply(mjl_data[, c("issn", "eissn")], 1, function(x) {
-                             unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
-                             paste(unique_values, collapse = ";")})
+  unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
+  paste(unique_values, collapse = ";")})
 jcr_data$issn_codes <- apply(jcr_data[, c("issn", "eissn")], 1, function(x) {
-                             unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
-                             paste(unique_values, collapse = ";")})
+  unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
+  paste(unique_values, collapse = ";")})
 scopus_data$issn_codes <- apply(scopus_data[, c("issn", "eissn")], 1, function(x) {
-                                unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
-                                paste(unique_values, collapse = ";")})
+  unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
+  paste(unique_values, collapse = ";")})
 doaj_data$issn_codes <- apply(doaj_data[, c("issn", "eissn")], 1, function(x) {
-                              unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
-                              paste(unique_values, collapse = ";")})
+  unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
+  paste(unique_values, collapse = ";")})
 sjr_data$issn_codes <- apply(sjr_data[, c("issn", "eissn")], 1, function(x) {
-                             unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
-                             paste(unique_values, collapse = ";")})
+  unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
+  paste(unique_values, collapse = ";")})
+
+
+# create variable to unify all journal names variants in Scopus
+scopus_data <- scopus_data %>% rowwise() %>%
+                               mutate(journal_name_variants = paste(unique(unlist(strsplit(c_across(`Related Title 1`:`Other Related Title 4`)[!is.na(c_across(`Related Title 1`:`Other Related Title 4`))], ";"))), collapse = ";")) %>%
+                               ungroup()
+
+
+# select, rename and organize all variables per dataframe
+openalex_data <- openalex_data %>% select(OA_ID, OA_source_ID = journal_id, OA_ISSN_codes = issn_codes, OA_journal_name = journal_name)
+
+mjl_data <- mjl_data %>% select(MJL_ID, MJL_ISSN_codes = issn_codes, MJL_journal_name = journal_name, MJL_publisher = Publisher.name,
+                                MJL_publisher_country = Publisher.address, MJL_language = Languages, MJL_categories = Web.of.Science.Categories)
+
+jcr_data <- jcr_data %>% select(JCR_ID, JCR_ISSN_codes = issn_codes, JCR_journal_name = journal_name, JCR_journal_name_variants = `JCR Abbreviation`,
+                                JCR_publisher = Publisher, JCR_categories = Category, JCR_edition = Edition, JCR_JCI_2023 = `2023 JCI`,
+                                JCR_JCI_rank = `JCI Rank`, JCR_JCI_quartile = `JCI Quartile`, JCR_JCI_percentile = `JCI Percentile`,
+                                JCR_JIF_2023 = `2023 JIF`, JCR_JIF_rank = `JIF Rank`, JCR_JIF_quartile = `JIF Quartile`, JCR_JIF_percentile = `JIF Percentile`,
+                                JCR_JIF_5_years = `5 Year JIF`, JCR_JIF_5_years_quartile = `5 Year JIF Quartile`, JCR_JIF_no_self_cites = `JIF Without Self Cites`,
+                                JCR_immediacy_index = `Immediacy Index`, JCR_AIS = `Article Influence Score`, JCR_AIS_quartile = `AIS Quartile`,
+                                JCR_eigenfactor = Eigenfactor, JCR_eigenfactor_normalized = `Normalized Eigenfactor`, JCR_citing_half_life = `Citing Half-Life`,
+                                JCR_cited_half_life = `Cited Half-Life`, JCR_percent_articles_citable_items = `% of Articles in Citable items`,
+                                JCR_percent_citable_open_access = `% of Citable OA`, JCR_total_articles = `Total Articles`, JCR_total_citations = `Total Citations`, JCR_citable_articles = `Citable Items`)
+
+scopus_data <- scopus_data %>% select(SCOP_ID, SCOP_source_ID = `Sourcerecord ID`, SCOP_ISSN_codes = issn_codes, SCOP_journal_name = journal_name,
+                                      SCOP_journal_name_variants = journal_name_variants, SCOP_publisher = Publisher, SCOP_main_publisher = `Publisher Imprints Grouped to Main Publisher`,
+                                      SCOP_language = language, SCOP_ASJC_codes = `All Science Journal Classification Codes (ASJC)`, SCOP_coverage = Coverage, SCOP_open_access = `Open Access Status`,
+                                      SCOP_active_inactive = `Active or Inactive`, SCOP_discontinued = `Titles Discontinued by Scopus Due to Quality Issues`, SCOP_medline_sourced = `Medline-sourced Title? (See additional details under separate tab.)`)
+
+doaj_data <- doaj_data %>% select(DOAJ_ID, DOAJ_ISSN_codes = issn_codes, DOAJ_continues_ISSN = Continues, DOAJ_continued_by_ISSN = Continued.By,
+                                  DOAJ_journal_name = journal_name, DOAJ_journal_name_variants = Alternative.title, DOAJ_publisher = Publisher,
+                                  DOAJ_publisher_country = Country.of.publisher, DOAJ_other_organization = Other.organisation, DOAJ_other_organization_country = Country.of.other.organisation,
+                                  DOAJ_language = language, DOAJ_LCC_codes = LCC.Codes, DOAJ_subjects = Subjects, DOAJ_keywords = Keywords,
+                                  DOAJ_open_access = Does.the.journal.comply.to.DOAJ.s.definition.of.open.access., DOAJ_open_license_since = When.did.the.journal.start.to.publish.all.content.using.an.open.license.,
+                                  DOAJ_license = Journal.license, DOAJ_license_attributes = License.attributes, DOAJ_author_unrestricted_rights = Author.holds.copyright.without.restrictions,
+                                  DOAJ_open_citations = Journal.complies.with.I4OC.standards.for.open.citations, DOAJ_machine_readable_license = Machine.readable.CC.licensing.information.embedded.or.displayed.in.articles,
+                                  DOAJ_review_process = Review.process, DOAJ_average_weeks_for_publication = Average.number.of.weeks.between.article.submission.and.publication,
+                                  DOAJ_APC_prices = APC.amount, DOAJ_other_fees = Has.other.fees, DOAJ_waiver_policy = Journal.waiver.policy..for.developing.country.authors.etc.,
+                                  DOAJ_deposit_policy = Deposit.policy.directory, DOAJ_plagiarism_policy = Journal.plagiarism.screening.policy,
+                                  DOAJ_persistent_identifiers = Persistent.article.identifiers, DOAJ_preservation_services = Preservation.Services,
+                                  DOAJ_national_library_preservation_services = Preservation.Service..national.library, DOAJ_website = Journal.URL)
+
+sjr_data <- sjr_data %>% select(SJR_ID, SJR_source_ID = Sourceid, SJR_ISSN_codes = issn_codes, SJR_journal_name = journal_name, SJR_publisher = Publisher,
+                                SJR_publisher_country = Country, SJR_region = Region, SJR_categories = Categories, SJR_areas = Areas, SJR_coverage = Coverage,
+                                SJR_SJR = SJR, SJR_rank = Rank, SJR_best_quartile = `SJR Best Quartile`, SJR_h_index = `H index`, SJR_total_articles_2023 = `Total Docs. (2023)`,
+                                SJR_total_articles_3_years = `Total Docs. (3years)`, SJR_total_references = `Total Refs.`, SJR_references_per_articles = `Ref. / Doc.`,
+                                SJR_total_citations_3_years = `Total Cites (3years)`, SJR_citations_per_articles_2_years = `Cites / Doc. (2years)`,
+                                SJR_citable_articles_3_years = `Citable Docs. (3years)`, SJR_percent_female = `%Female`, SJR_SDG = SDG, SJR_overton = Overton)
+
+cwts_data <- cwts_data %>% select(CWTS_ID, CWTS_ISSN_codes = issn_codes, CWTS_journal_name = `Source title`, CWTS_percent_self_citations = `% self cit`,
+                                  CWTS_SNIP = SNIP, CWTS_SNIP_lower_bound = `SNIP (lower bound)`, CWTS_SNIP_upper_bound = `SNIP (upper bound)`,
+                                  CWTS_IPP = IPP, CWTS_IPP_lower_bound = `IPP (lower bound)`, CWTS_IPP_upper_bound = `IPP (upper bound)`)
+
+
+
+
 
 
 
