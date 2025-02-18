@@ -26,6 +26,8 @@ jcr_data <- jcr_data %>% group_by(`Journal name`, `JCR Abbreviation`, Publisher,
   summarise(across(everything(), ~ paste(unique(.), collapse = ";")), .groups = "drop")
 jcr_data <- jcr_data %>% rename(journal_name = `Journal name`, issn = ISSN, eissn = eISSN)
 jcr_data[jcr_data == "N/A"] <- NA
+jcr_data <- bind_rows(jcr_data, read.csv("~/Desktop/Local.Journals/JCR/JCR_missing_journals.csv", check.names = FALSE) %>%
+                        mutate(across(everything(), as.character)))
 
 
 # Scopus upload and data mining
@@ -153,7 +155,68 @@ cwts_data <- cwts_data %>% select(CWTS_ID, CWTS_ISSN_codes = issn_codes, CWTS_jo
                                   CWTS_IPP = IPP, CWTS_IPP_lower_bound = `IPP (lower bound)`, CWTS_IPP_upper_bound = `IPP (upper bound)`)
 
 
+# prepare dataframes for matching
+openalex_data_match <- subset(openalex_data, select = c("OA_ID", "OA_ISSN_codes"))
+openalex_data_match <- openalex_data_match %>% mutate(OA_ISSN_codes = strsplit(as.character(OA_ISSN_codes), ";")) %>%
+                                               unnest(OA_ISSN_codes) %>%
+                                               mutate(OA_ISSN_codes = gsub("\\s+", "", OA_ISSN_codes)) %>%
+                                               filter(OA_ISSN_codes != "") %>%
+                                               distinct(OA_ID, OA_ISSN_codes)
 
+mjl_data_match <- subset(mjl_data, select = c("MJL_ID", "MJL_ISSN_codes"))
+mjl_data_match <- mjl_data_match %>% mutate(MJL_ISSN_codes = strsplit(as.character(MJL_ISSN_codes), ";")) %>%
+                                     unnest(MJL_ISSN_codes) %>%
+                                     mutate(MJL_ISSN_codes = gsub("\\s+", "", MJL_ISSN_codes)) %>%
+                                     filter(MJL_ISSN_codes != "") %>%
+                                     distinct(MJL_ID, MJL_ISSN_codes)
+
+jcr_data_match <- subset(jcr_data, select = c("JCR_ID", "JCR_ISSN_codes"))
+jcr_data_match <- jcr_data_match %>% mutate(JCR_ISSN_codes = strsplit(as.character(JCR_ISSN_codes), ";")) %>%
+                                     unnest(JCR_ISSN_codes) %>%
+                                     mutate(JCR_ISSN_codes = gsub("\\s+", "", JCR_ISSN_codes)) %>%
+                                     filter(JCR_ISSN_codes != "") %>%
+                                     distinct(JCR_ID, JCR_ISSN_codes)
+
+scopus_data_match <- subset(scopus_data, select = c("SCOP_ID", "SCOP_ISSN_codes"))
+scopus_data_match <- scopus_data_match %>% mutate(SCOP_ISSN_codes = strsplit(as.character(SCOP_ISSN_codes), ";")) %>%
+                                           unnest(SCOP_ISSN_codes) %>%
+                                           mutate(SCOP_ISSN_codes = gsub("\\s+", "", SCOP_ISSN_codes)) %>%
+                                           filter(SCOP_ISSN_codes != "") %>%
+                                           distinct(SCOP_ID, SCOP_ISSN_codes)
+
+doaj_data_match <- subset(doaj_data, select = c("DOAJ_ID", "DOAJ_ISSN_codes"))
+doaj_data_match <- doaj_data_match %>% mutate(DOAJ_ISSN_codes = strsplit(as.character(DOAJ_ISSN_codes), ";")) %>%
+                                       unnest(DOAJ_ISSN_codes) %>%
+                                       mutate(DOAJ_ISSN_codes = gsub("\\s+", "", DOAJ_ISSN_codes)) %>%
+                                       filter(DOAJ_ISSN_codes != "") %>%
+                                       distinct(DOAJ_ID, DOAJ_ISSN_codes)
+
+sjr_data_match <- subset(sjr_data, select = c("SJR_ID", "SJR_ISSN_codes"))
+sjr_data_match <- sjr_data_match %>% mutate(SJR_ISSN_codes = strsplit(as.character(SJR_ISSN_codes), ";")) %>%
+                                     unnest(SJR_ISSN_codes) %>%
+                                     mutate(SJR_ISSN_codes = gsub("\\s+", "", SJR_ISSN_codes)) %>%
+                                     filter(SJR_ISSN_codes != "") %>%
+                                     distinct(SJR_ID, SJR_ISSN_codes)
+
+cwts_data_match <- subset(cwts_data, select = c("CWTS_ID", "CWTS_ISSN_codes"))
+cwts_data_match <- cwts_data_match %>% mutate(CWTS_ISSN_codes = strsplit(as.character(CWTS_ISSN_codes), ";")) %>%
+                                       unnest(CWTS_ISSN_codes) %>%
+                                       mutate(CWTS_ISSN_codes = gsub("\\s+", "", CWTS_ISSN_codes)) %>%
+                                       filter(CWTS_ISSN_codes != "") %>%
+                                       distinct(CWTS_ID, CWTS_ISSN_codes)
+
+# match all 7 dataframes by the journals' issn codes
+TRIAL2 <- openalex_data_match %>%
+  full_join(mjl_data_match, by = c("OA_ISSN_codes" = "MJL_ISSN_codes"), relationship = "many-to-many") %>%
+  full_join(jcr_data_match, by = c("OA_ISSN_codes" = "JCR_ISSN_codes"), relationship = "many-to-many") %>%
+  # Select relevant columns
+  select(OA_ID, MJL_ID, JCR_ID, OA_ISSN_codes) %>%
+  # Filter out rows where all three IDs are missing (indicating no match)
+  #filter(!is.na(OA_ISSN_codes) | !is.na(MJL_ID) | !is.na(JCR_ID)) %>% ESTO NO TIENE SENTIDO, HABRÍA QUE REEMPLAZARLO POR EL AISLAMIENTO DE LOS CASOS QUE SOLO CORRESPONDEN A UN DF
+  # Rename the ISSN code column for clarity
+  rename(ISSN_code = OA_ISSN_codes)
+
+### FUNCIONA BASTANTE BIEN! AGREGAR EL RESTO DE LOS DF. QUÉ PASA CON LOS ISSN QUE SOLO APARECEN CORRESPONDIENDO A UN SOLO DF? ESOS SERÍAN LOS QUE NO LOGRAN MATCHEAR POR ISSN, HABRÍA QUE SEPARARLOS Y TRABAJARLOS DESDE SUS TÍTULOS
 
 
 
