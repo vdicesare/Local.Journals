@@ -225,17 +225,20 @@ ddff_ids_match <- ddff_ids_match[rowSums(!is.na(ddff_ids_match)) > 1, ]
 
 # store separately the rows where there's only one ID and incorporate the corresponding journals' titles
 ddff_ids_no_match <- ddff_ids_match[rowSums(!is.na(ddff_ids_match)) == 1, ]
+ddff_ids_no_match <- ddff_ids_no_match %>% left_join(select(openalex_data, OA_ID, OA_journal_name), by = "OA_ID") %>%
+                                           left_join(select(mjl_data, MJL_ID, MJL_journal_name), by = "MJL_ID") %>%
+                                           left_join(select(jcr_data, JCR_ID, JCR_journal_name, JCR_journal_name_variants), by = "JCR_ID") %>%
+                                           left_join(select(scopus_data, SCOP_ID, SCOP_journal_name, SCOP_journal_name_variants), by = "SCOP_ID") %>%
+                                           left_join(select(doaj_data, DOAJ_ID, DOAJ_journal_name, DOAJ_journal_name_variants), by = "DOAJ_ID") %>%
+                                           left_join(select(sjr_data, SJR_ID, SJR_journal_name), by = "SJR_ID") %>%
+                                           left_join(select(cwts_data, CWTS_ID, CWTS_journal_name), by = "CWTS_ID")
+ddff_ids_no_match <- ddff_ids_no_match %>% mutate(ID = coalesce(OA_ID, MJL_ID, JCR_ID, SCOP_ID, DOAJ_ID, SJR_ID, CWTS_ID),
+                                                  journal_name = coalesce(OA_journal_name, MJL_journal_name, JCR_journal_name, SCOP_journal_name, DOAJ_journal_name, SJR_journal_name, CWTS_journal_name),
+                                                  journal_name_variants = coalesce(JCR_journal_name_variants, SCOP_journal_name_variants, DOAJ_journal_name_variants)) %>%
+                                           select(ID, journal_name, journal_name_variants)
 
-
-# incorporate the journals' titles to that separate df
-
-### FUNCIONA BASTANTE BIEN! AGREGAR EL RESTO DE LOS DF. QUÉ PASA CON LOS ISSN QUE SOLO APARECEN CORRESPONDIENDO A UN SOLO DF? ESOS SERÍAN LOS QUE NO LOGRAN MATCHEAR POR ISSN, HABRÍA QUE SEPARARLOS Y TRABAJARLOS DESDE SUS TÍTULOS
-
-
-
-
-# TRATAMIENTO DE LOS DISTINTOS ISSNS, TAL VEZ LO MEJOR SEA CONSERVARLOS TODOS, INDEPENDIENTEMENTE DE SU TIPO, Y PROGRAMAR EL MATCHEO POR CUALQUIERA DE ELLOS
-## SEGUIR TRABAJANDO POR ACÁ, ARMANDO ESA PRIMERA RONDA DE MATCHEO POR ISSN_CODES Y LUEGO PENSAR LA SEGUNDA RONDA A PARTIR DE LOS TÍTULOS.
+### AGREGAR OA_journal_name_variants A ESTAS ÚLTIMAS LÍNEAS Y DESCARGAR DDFF_IDS_NO_MATCH PARA CAMRYN
+### tal vez no sea necesario estandarizar los títulos como sigue acá abajo, eso es parte del paso a paso que podría desarrollar Camryn
 
 # standardize all journal_name variables to ensure accurate comparisons
 mjl_data <- mjl_data %>% mutate(journal_name = journal_name %>%
