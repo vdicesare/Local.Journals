@@ -216,9 +216,17 @@ ddff_full_match <- openalex_data_match %>% full_join(mjl_data_match, by = c("OA_
                                            select(OA_ID, MJL_ID, JCR_ID, SCOP_ID, DOAJ_ID, SJR_ID, CWTS_ID, OA_ISSN_codes) %>%
                                            rename(ISSN_code = OA_ISSN_codes)
 
-# remove ISSN code variable
-# remove duplicated rows
-# store separately the rows where there's only one ID and 6 NA values
+
+# remove ISSN code variable, duplicated rows and cases with only one ID
+ddff_ids_match <- subset(ddff_full_match, select = c("OA_ID", "MJL_ID", "JCR_ID", "SCOP_ID", "DOAJ_ID", "SJR_ID", "CWTS_ID"))
+ddff_ids_match <- ddff_ids_match %>% distinct()
+ddff_ids_match <- ddff_ids_match[rowSums(!is.na(ddff_ids_match)) > 1, ]
+
+
+# store separately the rows where there's only one ID and incorporate the corresponding journals' titles
+ddff_ids_no_match <- ddff_ids_match[rowSums(!is.na(ddff_ids_match)) == 1, ]
+
+
 # incorporate the journals' titles to that separate df
 
 ### FUNCIONA BASTANTE BIEN! AGREGAR EL RESTO DE LOS DF. QUÉ PASA CON LOS ISSN QUE SOLO APARECEN CORRESPONDIENDO A UN SOLO DF? ESOS SERÍAN LOS QUE NO LOGRAN MATCHEAR POR ISSN, HABRÍA QUE SEPARARLOS Y TRABAJARLOS DESDE SUS TÍTULOS
