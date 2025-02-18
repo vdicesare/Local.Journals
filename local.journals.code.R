@@ -205,16 +205,21 @@ cwts_data_match <- cwts_data_match %>% mutate(CWTS_ISSN_codes = strsplit(as.char
                                        filter(CWTS_ISSN_codes != "") %>%
                                        distinct(CWTS_ID, CWTS_ISSN_codes)
 
-# match all 7 dataframes by the journals' issn codes
-TRIAL2 <- openalex_data_match %>%
-  full_join(mjl_data_match, by = c("OA_ISSN_codes" = "MJL_ISSN_codes"), relationship = "many-to-many") %>%
-  full_join(jcr_data_match, by = c("OA_ISSN_codes" = "JCR_ISSN_codes"), relationship = "many-to-many") %>%
-  # Select relevant columns
-  select(OA_ID, MJL_ID, JCR_ID, OA_ISSN_codes) %>%
-  # Filter out rows where all three IDs are missing (indicating no match)
-  #filter(!is.na(OA_ISSN_codes) | !is.na(MJL_ID) | !is.na(JCR_ID)) %>% ESTO NO TIENE SENTIDO, HABRÍA QUE REEMPLAZARLO POR EL AISLAMIENTO DE LOS CASOS QUE SOLO CORRESPONDEN A UN DF
-  # Rename the ISSN code column for clarity
-  rename(ISSN_code = OA_ISSN_codes)
+
+# match all dataframes by the journals' ISSN codes
+ddff_full_match <- openalex_data_match %>% full_join(mjl_data_match, by = c("OA_ISSN_codes" = "MJL_ISSN_codes"), relationship = "many-to-many") %>%
+                                           full_join(jcr_data_match, by = c("OA_ISSN_codes" = "JCR_ISSN_codes"), relationship = "many-to-many") %>%
+                                           full_join(scopus_data_match, by = c("OA_ISSN_codes" = "SCOP_ISSN_codes"), relationship = "many-to-many") %>%
+                                           full_join(doaj_data_match, by = c("OA_ISSN_codes" = "DOAJ_ISSN_codes"), relationship = "many-to-many") %>%
+                                           full_join(sjr_data_match, by = c("OA_ISSN_codes" = "SJR_ISSN_codes"), relationship = "many-to-many") %>%
+                                           full_join(cwts_data_match, by = c("OA_ISSN_codes" = "CWTS_ISSN_codes"), relationship = "many-to-many") %>%
+                                           select(OA_ID, MJL_ID, JCR_ID, SCOP_ID, DOAJ_ID, SJR_ID, CWTS_ID, OA_ISSN_codes) %>%
+                                           rename(ISSN_code = OA_ISSN_codes)
+
+# remove ISSN code variable
+# remove duplicated rows
+# store separately the rows where there's only one ID and 6 NA values
+# incorporate the journals' titles to that separate df
 
 ### FUNCIONA BASTANTE BIEN! AGREGAR EL RESTO DE LOS DF. QUÉ PASA CON LOS ISSN QUE SOLO APARECEN CORRESPONDIENDO A UN SOLO DF? ESOS SERÍAN LOS QUE NO LOGRAN MATCHEAR POR ISSN, HABRÍA QUE SEPARARLOS Y TRABAJARLOS DESDE SUS TÍTULOS
 
