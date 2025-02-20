@@ -33,9 +33,9 @@ jcr_data <- bind_rows(jcr_data, read.csv("~/Desktop/Local.Journals/JCR/JCR_missi
 
 # Scopus upload and data mining
 scopus_data <- readxl::read_excel("~/Desktop/Local.Journals/Scopus.xlsx")
-scopus_data[scopus_data == "NA"] <- NA
 scopus_data <- scopus_data %>% group_by(journal_name, issn, eissn) %>%
                                summarise(across(everything(), ~ paste(unique(.), collapse = ";")), .groups = "drop")
+scopus_data[scopus_data == "NA"] <- NA
 scopus_data$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", scopus_data$issn)
 scopus_data$eissn <- sub("^(.{4})(.{4})$", "\\1-\\2", scopus_data$eissn)
 
@@ -135,7 +135,7 @@ jcr_data <- jcr_data %>% select(JCR_ID, JCR_ISSN_codes = issn_codes, JCR_journal
 scopus_data <- scopus_data %>% select(SCOP_ID, SCOP_source_ID = `Sourcerecord ID`, SCOP_ISSN_codes = issn_codes, SCOP_journal_name = journal_name,
                                       SCOP_journal_name_variants = journal_name_variants, SCOP_publisher = Publisher, SCOP_main_publisher = `Publisher Imprints Grouped to Main Publisher`,
                                       SCOP_language = language, SCOP_ASJC_codes = `All Science Journal Classification Codes (ASJC)`, SCOP_coverage = Coverage, SCOP_open_access = `Open Access Status`,
-                                      SCOP_active_inactive = `Active or Inactive`, SCOP_discontinued = `Titles Discontinued by Scopus Due to Quality Issues`, SCOP_medline_sourced = `Medline-sourced Title? (See additional details under separate tab.)`)
+                                      SCOP_discontinued = `Titles Discontinued by Scopus Due to Quality Issues`, SCOP_medline_sourced = `Medline-sourced Title? (See additional details under separate tab.)`)
 
 doaj_data <- doaj_data %>% select(DOAJ_ID, DOAJ_ISSN_codes = issn_codes, DOAJ_continues_ISSN = Continues, DOAJ_continued_by_ISSN = Continued.By,
                                   DOAJ_journal_name = journal_name, DOAJ_journal_name_variants = Alternative.title, DOAJ_publisher = Publisher,
