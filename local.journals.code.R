@@ -27,9 +27,33 @@ openalex_articles <- rbindlist(lapply(openalex_articles, fread, sep = ","), fill
 openalex_articles$journal_id <- as.numeric(as.character(openalex_articles$journal_id))
 openalex_articles$article_id <- as.numeric(as.character(openalex_articles$article_id))
 
-# replace the subfield, field and domain codes in openalex_articles with the corresponding tags from openalex_topics
-openalex_topics <- readxl::read_excel("~/Desktop/Local.Journals/OAtopics.xlsx")
+concat_unique <- function(x) {x <- unique(na.omit(x))
+                              x <- x[x != ""]
+                              if (length(x) > 0) paste(x, collapse = ";") else NA}
+openalex_topics_aggregated <- openalex_articles %>% group_by(journal_id) %>%
+                                                    summarise(topic_display_name = concat_unique(topic_display_name),
+                                                              subfield = concat_unique(subfield),
+                                                              field = concat_unique(field),
+                                                              domain = concat_unique(domain),
+                                                              primary_topic_display_name = concat_unique(primary_topic_display_name))
 
+# replace the subfield, field and domain codes with the corresponding tags from openalex_topics
+openalex_topics <- readxl::read_excel("~/Desktop/Local.Journals/OAtopics.xlsx")
+subfield_lookup <- openalex_topics %>% select(subfield_id, subfield_name) %>%
+                                       distinct()
+field_lookup <- openalex_topics %>% select(field_id, field_name) %>%
+                                    distinct()
+domain_lookup <- openalex_topics %>% select(domain_id, domain_name) %>%
+                                     distinct()
+replace_codes_with_tags <- function(code_column, lookup_table, code_name, tag_name) {sapply(code_column, function(codes) {
+                                                                                     code_list <- strsplit(codes, ";")[[1]]
+                                                                                     tags <- sapply(code_list, function(code) {
+                                                                                       match_code <- lookup_table %>% filter(!!sym(code_name) == code)
+                                                                                       if (nrow(match_code) > 0) match_code[[tag_name]] else NA})
+                                                                                     paste(tags, collapse = ";")})}
+openalex_topics_aggregated <- openalex_topics_aggregated %>% mutate(subfield = replace_codes_with_tags(subfield, subfield_lookup, "subfield_id", "subfield_name"),
+                                                                    field = replace_codes_with_tags(field, field_lookup, "field_id", "field_name"),
+                                                                    domain = replace_codes_with_tags(domain, domain_lookup, "domain_id", "domain_name"))
 
 
 ### LUEGO DE REARMAR OPENALEX, VOLVER A CORRER EL CÓDIGO DE CADA BBDD Y MATCHEAR POR ISSN
