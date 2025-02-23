@@ -19,9 +19,7 @@ openalex_journals <- openalex_journals %>% group_by(journal_id) %>%
                                            summarise(across(everything(), ~ first(.)),
                                                      APC_prices = paste(unique(APC_prices[!is.na(APC_prices) & APC_prices != ""]), collapse = "; ")) %>%
                                            ungroup()
-###### SEGUIR
-### agregar más variables a los journals desde el archivo desagregado por artículos. trabajar desde ahí los topics, etc. para los journals, y dejar los títulos para la variable local
-## hay que agrupar todos los topics, etc para cada journal, separándolos con ;
+
 openalex_articles <- list.files(path = "~/Desktop/Local.Journals/OAarticles", pattern = "ArticlesTitlesTopics-.*", full.names = TRUE)
 openalex_articles <- rbindlist(lapply(openalex_articles, fread, sep = ","), fill = TRUE)
 openalex_articles$journal_id <- as.numeric(as.character(openalex_articles$journal_id))
@@ -55,8 +53,10 @@ openalex_topics_aggregated <- openalex_topics_aggregated %>% mutate(subfield = r
                                                                     field = replace_codes_with_tags(field, field_lookup, "field_id", "field_name"),
                                                                     domain = replace_codes_with_tags(domain, domain_lookup, "domain_id", "domain_name"))
 
-
-### LUEGO DE REARMAR OPENALEX, VOLVER A CORRER EL CÓDIGO DE CADA BBDD Y MATCHEAR POR ISSN
+# incorporate all topics related variables to complete openalex_journals dataframe
+openalex_journals <- openalex_journals %>% left_join(openalex_topics_aggregated %>%
+                                           select(journal_id, topic_display_name, primary_topic_display_name, subfield, field, domain), 
+                                           by = "journal_id")
 
 openalex_journals_50 <- read.csv("~/Desktop/Local.Journals/OpenAlex-50.csv")
 
