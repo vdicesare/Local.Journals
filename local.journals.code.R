@@ -58,7 +58,7 @@ openalex_journals <- openalex_journals %>% left_join(openalex_topics_aggregated 
                                            select(journal_id, topic_display_name, primary_topic_display_name, subfield, field, domain), 
                                            by = "journal_id")
 
-openalex_journals_50 <- read.csv("~/Desktop/Local.Journals/OpenAlex-50.csv")
+#openalex_journals_50 <- read.csv("~/Desktop/Local.Journals/OpenAlex-50.csv")
 
 
 # MJL upload and data mining
@@ -117,8 +117,8 @@ cwts_journals <- readxl::read_excel("~/Desktop/Local.Journals/CWTS.xlsx")
 # add unique identifiers to each dataframe
 openalex_journals <- openalex_journals %>% mutate(OA_ID = paste0("OA", row_number())) %>%
                                            relocate(OA_ID)
-openalex_journals_50 <- openalex_journals_50 %>% mutate(OA_ID = paste0("OA", row_number())) %>%
-                                                 relocate(OA_ID)
+#openalex_journals_50 <- openalex_journals_50 %>% mutate(OA_ID = paste0("OA", row_number())) %>%
+#                                                 relocate(OA_ID)
 mjl_journals <- mjl_journals %>% mutate(MJL_ID = paste0("MJL", row_number())) %>%
                                  relocate(MJL_ID)
 jcr_journals <- jcr_journals %>% mutate(JCR_ID = paste0("JCR", row_number())) %>%
@@ -137,9 +137,9 @@ cwts_journals <- cwts_journals %>% mutate(CWTS_ID = paste0("CWTS", row_number())
 openalex_journals$issn_codes <- apply(openalex_journals[, c("issn", "issn_l")], 1, function(x) {
                                       unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
                                       paste(unique_values, collapse = ";")})
-openalex_journals_50$issn_codes <- apply(openalex_journals_50[, c("issn", "issn_l")], 1, function(x) {
-                                         unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
-                                         paste(unique_values, collapse = ";")})
+#openalex_journals_50$issn_codes <- apply(openalex_journals_50[, c("issn", "issn_l")], 1, function(x) {
+#                                         unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
+#                                         paste(unique_values, collapse = ";")})
 mjl_journals$issn_codes <- apply(mjl_journals[, c("issn", "eissn")], 1, function(x) {
                                  unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
                                  paste(unique_values, collapse = ";")})
@@ -168,7 +168,7 @@ openalex_journals <- openalex_journals %>% select(OA_ID, OA_source_ID = journal_
                                                   OA_publisher = publisher, OA_publisher_country = country_code, OA_topics = topic_display_name, OA_primary_topics = primary_topic_display_name,
                                                   OA_subfields = subfield, OA_fields = field, OA_domains = domain, OA_open_access = is_oa, OA_APC_prices = APC_prices, OA_website = homepage_url,
                                                   OA_total_articles = works_count, OA_total_citations = cited_by_count)
-openalex_journals_50 <- openalex_journals_50 %>% select(OA_ID, OA_source_ID = journal_id, OA_ISSN_codes = issn_codes, OA_journal_name = journal_name)
+#openalex_journals_50 <- openalex_journals_50 %>% select(OA_ID, OA_source_ID = journal_id, OA_ISSN_codes = issn_codes, OA_journal_name = journal_name)
 
 mjl_journals <- mjl_journals %>% select(MJL_ID, MJL_ISSN_codes = issn_codes, MJL_journal_name = journal_name, MJL_publisher = Publisher.name,
                                         MJL_publisher_country = Publisher.address, MJL_language = Languages, MJL_categories = Web.of.Science.Categories)
@@ -221,12 +221,12 @@ openalex_journals_match <- openalex_journals_match %>% mutate(OA_ISSN_codes = st
                                                        filter(OA_ISSN_codes != "") %>%
                                                        distinct(OA_ID, OA_ISSN_codes)
 
-openalex_journals_50_match <- subset(openalex_journals_50, select = c("OA_ID", "OA_ISSN_codes"))
-openalex_journals_50_match <- openalex_journals_50_match %>% mutate(OA_ISSN_codes = strsplit(as.character(OA_ISSN_codes), ";")) %>%
-                                                             unnest(OA_ISSN_codes) %>%
-                                                             mutate(OA_ISSN_codes = gsub("\\s+", "", OA_ISSN_codes)) %>%
-                                                             filter(OA_ISSN_codes != "") %>%
-                                                             distinct(OA_ID, OA_ISSN_codes)
+#openalex_journals_50_match <- subset(openalex_journals_50, select = c("OA_ID", "OA_ISSN_codes"))
+#openalex_journals_50_match <- openalex_journals_50_match %>% mutate(OA_ISSN_codes = strsplit(as.character(OA_ISSN_codes), ";")) %>%
+#                                                             unnest(OA_ISSN_codes) %>%
+#                                                             mutate(OA_ISSN_codes = gsub("\\s+", "", OA_ISSN_codes)) %>%
+#                                                             filter(OA_ISSN_codes != "") %>%
+#                                                             distinct(OA_ID, OA_ISSN_codes)
 
 mjl_journals_match <- subset(mjl_journals, select = c("MJL_ID", "MJL_ISSN_codes"))
 mjl_journals_match <- mjl_journals_match %>% mutate(MJL_ISSN_codes = strsplit(as.character(MJL_ISSN_codes), ";")) %>%
@@ -324,28 +324,28 @@ write.csv(cwts_journals_no_match, "~/Desktop/Local.Journals/CWTS_titles_matching
 
 
 # match all dataframes by the journals' ISSN codes to OpenAlex < 50% threshold data
-ddff_OA_50_match <- openalex_journals_50_match %>% left_join(mjl_journals_match, by = c("OA_ISSN_codes" = "MJL_ISSN_codes"), relationship = "many-to-many") %>%
-                                               left_join(jcr_journals_match, by = c("OA_ISSN_codes" = "JCR_ISSN_codes"), relationship = "many-to-many") %>%
-                                               left_join(scopus_journals_match, by = c("OA_ISSN_codes" = "SCOP_ISSN_codes"), relationship = "many-to-many") %>%
-                                               left_join(doaj_journals_match, by = c("OA_ISSN_codes" = "DOAJ_ISSN_codes"), relationship = "many-to-many") %>%
-                                               left_join(sjr_journals_match, by = c("OA_ISSN_codes" = "SJR_ISSN_codes"), relationship = "many-to-many") %>%
-                                               left_join(cwts_journals_match, by = c("OA_ISSN_codes" = "CWTS_ISSN_codes"), relationship = "many-to-many") %>%
-                                               select(OA_ID, MJL_ID, JCR_ID, SCOP_ID, DOAJ_ID, SJR_ID, CWTS_ID, OA_ISSN_codes) %>%
-                                               rename(ISSN_code = OA_ISSN_codes)
+#ddff_OA_50_match <- openalex_journals_50_match %>% left_join(mjl_journals_match, by = c("OA_ISSN_codes" = "MJL_ISSN_codes"), relationship = "many-to-many") %>%
+#                                               left_join(jcr_journals_match, by = c("OA_ISSN_codes" = "JCR_ISSN_codes"), relationship = "many-to-many") %>%
+#                                               left_join(scopus_journals_match, by = c("OA_ISSN_codes" = "SCOP_ISSN_codes"), relationship = "many-to-many") %>%
+#                                               left_join(doaj_journals_match, by = c("OA_ISSN_codes" = "DOAJ_ISSN_codes"), relationship = "many-to-many") %>%
+#                                               left_join(sjr_journals_match, by = c("OA_ISSN_codes" = "SJR_ISSN_codes"), relationship = "many-to-many") %>%
+#                                               left_join(cwts_journals_match, by = c("OA_ISSN_codes" = "CWTS_ISSN_codes"), relationship = "many-to-many") %>%
+#                                               select(OA_ID, MJL_ID, JCR_ID, SCOP_ID, DOAJ_ID, SJR_ID, CWTS_ID, OA_ISSN_codes) %>%
+#                                               rename(ISSN_code = OA_ISSN_codes)
 
 
 # remove ISSN code variable, duplicated rows, cases with only one ID, and group rows by the OpenAlex ID
-ddff_OA_50_match <- subset(ddff_OA_50_match, select = c("OA_ID", "MJL_ID", "JCR_ID", "SCOP_ID", "DOAJ_ID", "SJR_ID", "CWTS_ID"))
-ddff_OA_50_match <- ddff_OA_50_match %>% distinct()
-ddff_OA_50_match <- ddff_OA_50_match[rowSums(!is.na(ddff_OA_50_match)) > 1, ]
-ddff_OA_50_match <- ddff_OA_50_match %>% group_by(OA_ID) %>%
-                                         summarise(across(everything(), ~ unique(na.omit(.))[1]), .groups = "drop")
+#ddff_OA_50_match <- subset(ddff_OA_50_match, select = c("OA_ID", "MJL_ID", "JCR_ID", "SCOP_ID", "DOAJ_ID", "SJR_ID", "CWTS_ID"))
+#ddff_OA_50_match <- ddff_OA_50_match %>% distinct()
+#ddff_OA_50_match <- ddff_OA_50_match[rowSums(!is.na(ddff_OA_50_match)) > 1, ]
+#ddff_OA_50_match <- ddff_OA_50_match %>% group_by(OA_ID) %>%
+#                                         summarise(across(everything(), ~ unique(na.omit(.))[1]), .groups = "drop")
 
 
 # store separately the rows where there's only one OpenAlex < 50 ID and incorporate the corresponding journals' titles
-ddff_OA_50_no_match <- ddff_OA_50_match[rowSums(!is.na(ddff_OA_50_match)) == 1, ]
-ddff_OA_50_no_match <- ddff_OA_50_no_match %>% left_join(select(openalex_journals_50, OA_ID, OA_ISSN_codes, OA_journal_name), by = "OA_ID")
-ddff_OA_50_no_match <- ddff_OA_50_no_match %>% select(OA_ID, OA_ISSN_codes, OA_journal_name) ### FALTARÍA AGREGAR LA VARIABLE JN VARIANTS
+#ddff_OA_50_no_match <- ddff_OA_50_match[rowSums(!is.na(ddff_OA_50_match)) == 1, ]
+#ddff_OA_50_no_match <- ddff_OA_50_no_match %>% left_join(select(openalex_journals_50, OA_ID, OA_ISSN_codes, OA_journal_name), by = "OA_ID")
+#ddff_OA_50_no_match <- ddff_OA_50_no_match %>% select(OA_ID, OA_ISSN_codes, OA_journal_name) ### FALTARÍA AGREGAR LA VARIABLE JN VARIANTS
 
 
 ### MEGA MERGE by ISSNs...
