@@ -350,7 +350,13 @@ write.csv(cwts_journals_no_match, "~/Desktop/Local.Journals/CWTS_titles_matching
 
 ### MEGA MERGE by ISSNs...
 # mientras Camryn matchea los títulos, trabajar con ddff_OA_ISSNs_match, trayendo las variables de cada journals ddff y completando con los datos que corresponden a los IDs matcheados
-
+ddff_OA_megamerge <- ddff_OA_ISSNs_match %>% left_join(openalex_journals, by = "OA_ID") %>%
+  left_join(mjl_journals, by = "MJL_ID") %>%
+  left_join(jcr_journals, by = "JCR_ID") %>%
+  left_join(scopus_journals, by = "SCOP_ID") %>%
+  left_join(doaj_journals, by = "DOAJ_ID") %>%
+  left_join(sjr_journals, by = "SJR_ID") %>%
+  left_join(cwts_journals, by = "CWTS_ID")
 
 
 
