@@ -290,6 +290,39 @@ ddff_OA_ISSNs_match <- ddff_OA_ISSNs_match %>% group_by(OA_ID) %>%
                                                summarise(across(everything(), ~ unique(na.omit(.))[1]), .groups = "drop")
 
 
+# store separately the rows where there's only one OpenAlex >= 50 ID and incorporate the corresponding journals' titles
+ddff_OA_ISSNs_no_match <- ddff_OA_ISSNs_match[rowSums(!is.na(ddff_OA_ISSNs_match)) == 1, ]
+ddff_OA_ISSNs_no_match <- ddff_OA_ISSNs_no_match %>% left_join(select(openalex_journals, OA_ID, OA_ISSN_codes, OA_journal_name, OA_journal_name_variants), by = "OA_ID")
+ddff_OA_ISSNs_no_match <- ddff_OA_ISSNs_no_match %>% select(OA_ID, OA_ISSN_codes, OA_journal_name, OA_journal_name_variants)
+write.csv(ddff_OA_ISSNs_no_match, "~/Desktop/Local.Journals/OA_titles_matching.csv")
+
+
+# isolate the journals from the rest of the ddbb that don't match with OpenAlex through their ISSN codes in order to match via titles
+mjl_journals_no_match <- mjl_journals %>% anti_join(ddff_OA_ISSNs_match, by = "MJL_ID") %>%
+                                          select(MJL_ID, MJL_ISSN_codes, MJL_journal_name)
+write.csv(mjl_journals_no_match, "~/Desktop/Local.Journals/MJL_titles_matching.csv")
+
+jcr_journals_no_match <- jcr_journals %>% anti_join(ddff_OA_ISSNs_match, by = "JCR_ID") %>%
+                                          select(JCR_ID, JCR_ISSN_codes, JCR_journal_name)
+write.csv(jcr_journals_no_match, "~/Desktop/Local.Journals/JCR_titles_matching.csv")
+
+scopus_journals_no_match <- scopus_journals %>% anti_join(ddff_OA_ISSNs_match, by = "SCOP_ID") %>%
+                                                select(SCOP_ID, SCOP_ISSN_codes, SCOP_journal_name)
+write.csv(scopus_journals_no_match, "~/Desktop/Local.Journals/SCOP_titles_matching.csv")
+
+doaj_journals_no_match <- doaj_journals %>% anti_join(ddff_OA_ISSNs_match, by = "DOAJ_ID") %>%
+                                            select(DOAJ_ID, DOAJ_ISSN_codes, DOAJ_journal_name)
+write.csv(doaj_journals_no_match, "~/Desktop/Local.Journals/DOAJ_titles_matching.csv")
+
+sjr_journals_no_match <- sjr_journals %>% anti_join(ddff_OA_ISSNs_match, by = "SJR_ID") %>%
+                                          select(SJR_ID, SJR_ISSN_codes, SJR_journal_name)
+write.csv(sjr_journals_no_match, "~/Desktop/Local.Journals/SJR_titles_matching.csv")
+
+cwts_journals_no_match <- cwts_journals %>% anti_join(ddff_OA_ISSNs_match, by = "CWTS_ID") %>%
+                                            select(CWTS_ID, CWTS_ISSN_codes, CWTS_journal_name)
+write.csv(cwts_journals_no_match, "~/Desktop/Local.Journals/CWTS_titles_matching.csv")
+
+
 # match all dataframes by the journals' ISSN codes to OpenAlex < 50% threshold data
 ddff_OA_50_match <- openalex_journals_50_match %>% left_join(mjl_journals_match, by = c("OA_ISSN_codes" = "MJL_ISSN_codes"), relationship = "many-to-many") %>%
                                                left_join(jcr_journals_match, by = c("OA_ISSN_codes" = "JCR_ISSN_codes"), relationship = "many-to-many") %>%
@@ -307,13 +340,6 @@ ddff_OA_50_match <- ddff_OA_50_match %>% distinct()
 ddff_OA_50_match <- ddff_OA_50_match[rowSums(!is.na(ddff_OA_50_match)) > 1, ]
 ddff_OA_50_match <- ddff_OA_50_match %>% group_by(OA_ID) %>%
                                          summarise(across(everything(), ~ unique(na.omit(.))[1]), .groups = "drop")
-
-
-# store separately the rows where there's only one OpenAlex >= 50 ID and incorporate the corresponding journals' titles
-ddff_OA_ISSNs_no_match <- ddff_OA_ISSNs_match[rowSums(!is.na(ddff_OA_ISSNs_match)) == 1, ]
-ddff_OA_ISSNs_no_match <- ddff_OA_ISSNs_no_match %>% left_join(select(openalex_journals, OA_ID, OA_ISSN_codes, OA_journal_name, OA_journal_name_variants), by = "OA_ID")
-ddff_OA_ISSNs_no_match <- ddff_OA_ISSNs_no_match %>% select(OA_ID, OA_ISSN_codes, OA_journal_name, OA_journal_name_variants)
-write.csv(ddff_OA_ISSNs_no_match, "~/Desktop/Local.Journals/OA_titles_matching.csv")
 
 
 # store separately the rows where there's only one OpenAlex < 50 ID and incorporate the corresponding journals' titles
