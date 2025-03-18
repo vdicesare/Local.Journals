@@ -9,80 +9,53 @@ library(bit64)
 options(scipen = 999)
 
 
-### MEGA JOURNALS DATAFRAME CONSTRUCTION
-# OpenAlex upload and data mining
-openalex <- list.files(path = "~/Desktop/Local.Journals/OAarticles", pattern = "ArticlesTitlesTopics-.*", full.names = TRUE)
-openalex <- rbindlist(lapply(openalex_articles, fread, sep = ","), fill = TRUE)
+# OpenAlex march 2025 version upload
+openalex_journals <- read.csv("~/Desktop/Local.Journals/local_journals_OA2503_journals_and_articles_functions.csv")
 
-openalex_journals <- read.csv("~/Desktop/Local.Journals/OpenAlex+50.csv")
-openalex_journals$APC_prices <- ifelse(is.na(openalex_journals$price) | openalex_journals$price == "" |
-                                         is.na(openalex_journals$currency) | openalex_journals$currency == "", NA, 
-                                       paste(openalex_journals$price, openalex_journals$currency))
-openalex_journals <- openalex_journals %>% group_by(journal_id) %>%
-                                           summarise(across(everything(), ~ first(.)),
-                                                     APC_prices = paste(unique(APC_prices[!is.na(APC_prices) & APC_prices != ""]), collapse = "; ")) %>%
-                                           ungroup()
+# data mining
+openalex_journals$issn <- gsub(",", "; ", openalex_journals$issn)
+openalex_journals$issn <- gsub("\\[|\\]", "", openalex_journals$issn)
+openalex_journals$issn <- gsub('"', "", openalex_journals$issn)
 
-openalex_articles <- list.files(path = "~/Desktop/Local.Journals/OAarticles", pattern = "ArticlesTitlesTopics-.*", full.names = TRUE)
-openalex_articles <- rbindlist(lapply(openalex_articles, fread, sep = ","), fill = TRUE)
-openalex_articles$journal_id <- as.numeric(as.character(openalex_articles$journal_id))
-openalex_articles$article_id <- as.numeric(as.character(openalex_articles$article_id))
-
-concat_unique <- function(x) {x <- unique(na.omit(x))
-                              x <- x[x != ""]
-                              if (length(x) > 0) paste(x, collapse = ";") else NA}
-openalex_topics_aggregated <- openalex_articles %>% group_by(journal_id) %>%
-                                                    summarise(topic_display_name = concat_unique(topic_display_name),
-                                                              subfield = concat_unique(subfield),
-                                                              field = concat_unique(field),
-                                                              domain = concat_unique(domain),
-                                                              primary_topic_display_name = concat_unique(primary_topic_display_name))
-
-# replace the subfield, field and domain codes with the corresponding tags from openalex_topics
+# replace the subfield, field and domain codes with the corresponding tags from OpenAlex topics
 openalex_topics <- readxl::read_excel("~/Desktop/Local.Journals/OAtopics.xlsx")
-subfield_lookup <- openalex_topics %>% select(subfield_id, subfield_name) %>%
-                                       distinct()
-field_lookup <- openalex_topics %>% select(field_id, field_name) %>%
-                                    distinct()
-domain_lookup <- openalex_topics %>% select(domain_id, domain_name) %>%
-                                     distinct()
-replace_codes_with_tags <- function(code_column, lookup_table, code_name, tag_name) {sapply(code_column, function(codes) {
-                                                                                     code_list <- strsplit(codes, ";")[[1]]
-                                                                                     tags <- sapply(code_list, function(code) {
-                                                                                       match_code <- lookup_table %>% filter(!!sym(code_name) == code)
-                                                                                       if (nrow(match_code) > 0) match_code[[tag_name]] else NA})
-                                                                                     paste(tags, collapse = ";")})}
-openalex_topics_aggregated <- openalex_topics_aggregated %>% mutate(subfield = replace_codes_with_tags(subfield, subfield_lookup, "subfield_id", "subfield_name"),
-                                                                    field = replace_codes_with_tags(field, field_lookup, "field_id", "field_name"),
-                                                                    domain = replace_codes_with_tags(domain, domain_lookup, "domain_id", "domain_name"))
+subfield_lookup <- openalex_topics %>% select(subfield_id, subfield_name) %>% distinct()
+field_lookup <- openalex_topics %>% select(field_id, field_name) %>% distinct()
+domain_lookup <- openalex_topics %>% select(domain_id, domain_name) %>% distinct()
 
-# incorporate all topics related variables to complete openalex_journals dataframe
-openalex_journals <- openalex_journals %>% left_join(openalex_topics_aggregated %>%
-                                           select(journal_id, topic_display_name, primary_topic_display_name, subfield, field, domain), 
-                                           by = "journal_id")
+replace_codes_with_tags <- function(code_column, lookup_table, code_name, tag_name) {
+                                    sapply(code_column, function(codes) {
+                                      code_list <- strsplit(codes, "; ")[[1]]
+                                      tags <- sapply(code_list, function(code) {
+                                        match_code <- lookup_table %>% filter(!!sym(code_name) == code)
+                                        if (nrow(match_code) > 0) match_code[[tag_name]] else NA})
+                                      paste(tags, collapse = "; ")})}
 
-openalex_journals_50 <- read.csv("~/Desktop/Local.Journals/OpenAlex-50.csv")
+openalex_journals$subfield <- replace_codes_with_tags(openalex_journals$subfield, subfield_lookup, "subfield_id", "subfield_name")
+openalex_journals$field <- replace_codes_with_tags(openalex_journals$field, field_lookup, "field_id", "field_name")
+openalex_journals$domain <- replace_codes_with_tags(openalex_journals$domain, domain_lookup, "domain_id", "domain_name")
+
+# incorporate refs local variable
+
+# incorporate cits local variable
 
 
-# MJL upload and data mining
+
+
+
+
+
+
+
+
+
+# MJL upload and data mining LANGUAGE
 mjl_journals <- read.csv("~/Desktop/Local.Journals/MJL.csv")
 mjl_journals <- mjl_journals %>% distinct()
 mjl_journals <- mjl_journals %>% group_by(journal_name, issn, eissn) %>%
                                  summarise(across(everything(), ~ paste(unique(.), collapse = ";")), .groups = "drop")
 
-
-# JCR upload and data mining
-jcr_journals <- list.files(path = "~/Desktop/Local.Journals/JCR", pattern = "VictoriaDi.*JCR_JournalResults.*", full.names = TRUE)
-jcr_journals <- rbindlist(lapply(jcr_journals, fread, sep = ","), fill = TRUE)
-jcr_journals <- jcr_journals %>% group_by(`Journal name`, `JCR Abbreviation`, Publisher, ISSN, eISSN) %>%
-                                 summarise(across(everything(), ~ paste(unique(.), collapse = ";")), .groups = "drop")
-jcr_journals <- jcr_journals %>% rename(journal_name = `Journal name`, issn = ISSN, eissn = eISSN)
-jcr_journals[jcr_journals == "N/A"] <- NA
-jcr_journals <- bind_rows(jcr_journals, read.csv("~/Desktop/Local.Journals/JCR/JCR_missing_journals.csv", check.names = FALSE) %>%
-                          mutate(across(everything(), as.character)))
-
-
-# Scopus upload and data mining
+# Scopus upload and data mining LANG
 scopus_journals <- readxl::read_excel("~/Desktop/Local.Journals/Scopus.xlsx")
 scopus_journals <- scopus_journals %>% group_by(journal_name, issn, eissn) %>%
                                        summarise(across(everything(), ~ paste(unique(.), collapse = ";")), .groups = "drop")
@@ -91,7 +64,7 @@ scopus_journals$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", scopus_journals$issn)
 scopus_journals$eissn <- sub("^(.{4})(.{4})$", "\\1-\\2", scopus_journals$eissn)
 
 
-# DOAJ upload and data mining
+# DOAJ upload and data mining LANG
 doaj_journals <- read.csv("~/Desktop/Local.Journals/DOAJ.csv")
 doaj_journals$issn <- ifelse(!is.na(doaj_journals$issn) & doaj_journals$issn != "", 
                              str_pad(doaj_journals$issn, width = 8, side = "left", pad = "0"), 
@@ -103,18 +76,11 @@ doaj_journals$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", doaj_journals$issn)
 doaj_journals$eissn <- sub("^(.{4})(.{4})$", "\\1-\\2", doaj_journals$eissn)
 
 
-# SJR upload and data mining
-sjr_journals <- readxl::read_excel("~/Desktop/Local.Journals/SJR.xlsx")
-sjr_journals <- sjr_journals %>% separate(eissn, into = c("eissn", "issn"), sep = ", ", extra = "merge", fill = "right") %>%
-                                 mutate(issn = ifelse(is.na(issn), NA, issn))
-sjr_journals <- sjr_journals %>% group_by(journal_name, issn, eissn) %>%
-                                 summarise(across(everything(), ~ paste(unique(.), collapse = ";")), .groups = "drop")
-sjr_journals$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", sjr_journals$issn)
-sjr_journals$eissn <- sub("^(.{4})(.{4})$", "\\1-\\2", sjr_journals$eissn)
 
 
-# CWTS upload
-cwts_journals <- readxl::read_excel("~/Desktop/Local.Journals/CWTS.xlsx")
+
+
+
 
 
 # add unique identifiers to each dataframe
