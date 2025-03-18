@@ -78,8 +78,25 @@ references_local_variable <- references_local_variable %>% group_by(journal_id, 
 references_local_variable <- references_local_variable %>% mutate(refs_prop = round(refs_count / refs_total, 2))
 
 
-# incorporate cits local variable
-### sacar código del otro archivo
+### citations local variable
+# read files
+citations_local_variable <- list.files(path = "~/Desktop/Local.Journals/citations_local_variable", pattern = "local_journals_OA2503_citations_local_variable_.*", full.names = TRUE)
+citations_local_variable <- rbindlist(lapply(citations_local_variable, fread, sep = ","), fill = TRUE)
+
+# compute variables cits_count, cits_total and cits_prop per unique combination of journal and its most citing country
+citations_local_variable <- citations_local_variable %>% group_by(journal_id, journal_name, country) %>%
+                                                         mutate(cits_count = n()) %>%
+                                                         ungroup()
+citations_local_variable <- within(citations_local_variable, rm(article_id, citing_work_id))
+citations_local_variable <- citations_local_variable %>% distinct()
+citations_local_variable <- citations_local_variable %>% group_by(journal_id, journal_name) %>%
+                                                         mutate(cits_total = sum(cits_count, na.rm = TRUE)) %>%
+                                                         ungroup()
+citations_local_variable <- citations_local_variable %>% group_by(journal_id, journal_name) %>%
+                                                         filter(cits_count == max(cits_count)) %>%
+                                                         ungroup()
+citations_local_variable <- citations_local_variable %>% mutate(cits_prop = round(cits_count / cits_total, 2))
+
 
 
 
