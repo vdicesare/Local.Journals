@@ -10,7 +10,7 @@ options(scipen = 999)
 
 
 # OpenAlex march 2025 version upload
-openalex_journals <- read.csv("~/Desktop/Local.Journals/local_journals_OA2503_journals_and_articles_functions.csv")
+openalex_journals <- read.csv("~/Desktop/Local.Journals/local_journals_OA2503_journals_functions.csv")
 
 # data mining
 openalex_journals$issn <- gsub(",", "; ", openalex_journals$issn)
@@ -35,10 +35,51 @@ openalex_journals$subfield <- replace_codes_with_tags(openalex_journals$subfield
 openalex_journals$field <- replace_codes_with_tags(openalex_journals$field, field_lookup, "field_id", "field_name")
 openalex_journals$domain <- replace_codes_with_tags(openalex_journals$domain, domain_lookup, "domain_id", "domain_name")
 
-# incorporate refs local variable
+
+### references local variable
+# read files and split into 20 dataframes for processing
+references_files <- list.files(path = "~/Desktop/Local.Journals/references_local_variable", pattern = "local_journals_OA2503_references_local_variable_.*", full.names = TRUE)
+num_parts <- 20  
+num_files <- length(references_files)
+chunk_size <- ceiling(num_files / num_parts)
+for (i in 1:num_parts) {chunk_files <- references_files[((i - 1) * chunk_size + 1):min(i * chunk_size, num_files)]
+                        chunk_files <- chunk_files[!is.na(chunk_files)]
+                        chunk_data <- rbindlist(lapply(chunk_files, fread), fill = TRUE)
+                        assign(paste0("references_part_", i), chunk_data, envir = .GlobalEnv)
+                        rm(chunk_data)
+                        gc()}
+
+# compute the refs_count and refs_total variables recurrently per each dataframe partition (references_part_1 until references_part_20)
+references_part_1 <- references_part_1 %>% group_by(journal_id, journal_name, country) %>%
+                                           mutate(refs_count = n()) %>%
+                                           ungroup()
+references_part_1 <- within(references_part_1, rm(article_id, reference_id))
+references_part_1 <- references_part_1 %>% distinct()
+references_part_1 <- references_part_1 %>% group_by(journal_id, journal_name) %>%
+                                           mutate(refs_total = sum(refs_count, na.rm = TRUE)) %>%
+                                           ungroup()
+
+# merge all parts together without loosing rows
+references_local_variable <- rbind(references_part_1, references_part_2, references_part_3, references_part_4, references_part_5, references_part_6,
+                                   references_part_7, references_part_8, references_part_9, references_part_10, references_part_11, references_part_12,
+                                   references_part_13, references_part_14, references_part_15, references_part_16, references_part_17, references_part_18,
+                                   references_part_19, references_part_20, fill = TRUE)
+
+# compute variables refs_count, refs_total and refs_prop per unique combination of journal and its most referenced country
+references_local_variable <- references_local_variable %>% group_by(journal_id, journal_name, country) %>%
+                                                           summarise(refs_count = sum(refs_count, na.rm = TRUE), .groups = "drop")
+references_local_variable <- references_local_variable %>% filter(!(journal_id == 1 & journal_name == "TRUE" & country == "TRUE" & refs_count == 1))
+references_local_variable <- references_local_variable %>% group_by(journal_id, journal_name) %>%
+                                                           mutate(refs_total = sum(refs_count, na.rm = TRUE)) %>%
+                                                           ungroup()
+references_local_variable <- references_local_variable %>% group_by(journal_id, journal_name) %>%
+                                                           filter(refs_count == max(refs_count)) %>%
+                                                           ungroup()
+references_local_variable <- references_local_variable %>% mutate(refs_prop = round(refs_count / refs_total, 2))
+
 
 # incorporate cits local variable
-
+### sacar código del otro archivo
 
 
 
