@@ -11,6 +11,9 @@ options(scipen = 999)
 
 ### MEGA JOURNALS DATAFRAME CONSTRUCTION
 # OpenAlex upload and data mining
+openalex <- list.files(path = "~/Desktop/Local.Journals/OAarticles", pattern = "ArticlesTitlesTopics-.*", full.names = TRUE)
+openalex <- rbindlist(lapply(openalex_articles, fread, sep = ","), fill = TRUE)
+
 openalex_journals <- read.csv("~/Desktop/Local.Journals/OpenAlex+50.csv")
 openalex_journals$APC_prices <- ifelse(is.na(openalex_journals$price) | openalex_journals$price == "" |
                                          is.na(openalex_journals$currency) | openalex_journals$currency == "", NA, 
@@ -485,6 +488,15 @@ langs <- langs %>% group_by(journal_id, journal_name, issn, eissn) %>%
                    summarise(language = paste(unique(trimws(language[language != ""])), collapse = ", "), 
                              .groups = "drop")
 
+
+### LOCAL VARIABLE DATABASES COMPUTING
+ddbb <- read.csv("~/Desktop/Local.Journals/local_variable_ddbb.csv")[, c("journal_id", "journal_name", "issn", "eissn")]
+
+
+### LOCAL VARIABLE TOPONYMS COMPUTING
+## ya tengo los títulos de cada artículo para identificar los toponyms
+
+
 # journal_name trials: identify unique common journals between WOS, Scopus and DOAJ, and OpenAlex
 cat("Common journal names between WOS & OpenAlex: ", length(intersect(unique(wos_lang$journal_name), unique(langs$journal_name))), "\n") # 15345
 cat("Common journal names between Scopus & OpenAlex: ", length(intersect(unique(scopus_lang$journal_name), unique(langs$journal_name))), "\n") # 18480
@@ -507,12 +519,3 @@ cat("Number of unique cases where both journal_name and ISSN match between Scopu
     length(intersect(paste(scopus_lang$journal_name, scopus_lang$issn), paste(langs$journal_name, langs$issn))), "\n") # 8413
 cat("Number of unique cases where both journal_name and ISSN match between Scopus & OpenAlex: ", 
     length(intersect(paste(doaj_lang$journal_name, doaj_lang$issn), paste(langs$journal_name, langs$issn))), "\n") # 4829
-
-
-
-### LOCAL VARIABLE DATABASES COMPUTING
-ddbb <- read.csv("~/Desktop/Local.Journals/local_variable_ddbb.csv")[, c("journal_id", "journal_name", "issn", "eissn")]
-
-
-### LOCAL VARIABLE TOPONYMS COMPUTING
-## ya tengo los títulos de cada artículo para identificar los toponyms
