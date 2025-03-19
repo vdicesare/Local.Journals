@@ -77,6 +77,12 @@ references_local_variable <- references_local_variable %>% group_by(journal_id, 
                                                            ungroup()
 references_local_variable <- references_local_variable %>% mutate(refs_prop = round(refs_count / refs_total, 2))
 
+# incorporate these refs variables to the main journals dataframe
+openalex_journals <- openalex_journals %>% left_join(references_local_variable %>%
+                                                       mutate(journal_id = as.numeric(journal_id)) %>%
+                                                       rename(refs_country = country),
+                                                     by = c("journal_id", "journal_name"))
+
 
 ### citations local variable
 # read files
@@ -97,44 +103,35 @@ citations_local_variable <- citations_local_variable %>% group_by(journal_id, jo
                                                          ungroup()
 citations_local_variable <- citations_local_variable %>% mutate(cits_prop = round(cits_count / cits_total, 2))
 
-
-###### SUMAR ESTAS VARIABLES AL DATAFRAME PRINCIPAL, Y MATCHEAR LAS VARIABLES LANGUAGE DE LAS OTRAS BBDD CON ESTAS REVISTAS OA
-
-
-
-
-
+# incorporate these cits variables to the main journals dataframe
+openalex_journals <- openalex_journals %>% left_join(citations_local_variable %>%
+                                                       mutate(journal_id = as.numeric(journal_id)) %>%
+                                                       rename(cits_country = country),
+                                                     by = c("journal_id", "journal_name"))
 
 
+###### MATCHEAR LAS VARIABLES LANGUAGE DE LAS OTRAS BBDD CON ESTAS REVISTAS OA
+# MJL language data upload (mainstream = English & Multi-Language)
+mjl_language <- read.csv("~/Desktop/Local.Journals/languages_local_variable/MJL.csv") %>% select(issn, eissn, Languages) %>%
+                                                                                          rename(mjl_lang = Languages)
 
+# Scopus language data upload and mining
+scopus_language <- readxl::read_excel("~/Desktop/Local.Journals/languages_local_variable/Scopus.xlsx") %>% select(issn, eissn, language) %>%
+                                                                                                           rename(scopus_lang = language)
+scopus_language$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", scopus_language$issn)
+scopus_language$eissn <- sub("^(.{4})(.{4})$", "\\1-\\2", scopus_language$eissn)
 
-
-# MJL upload and data mining LANGUAGE
-mjl_journals <- read.csv("~/Desktop/Local.Journals/MJL.csv")
-mjl_journals <- mjl_journals %>% distinct()
-mjl_journals <- mjl_journals %>% group_by(journal_name, issn, eissn) %>%
-                                 summarise(across(everything(), ~ paste(unique(.), collapse = ";")), .groups = "drop")
-
-# Scopus upload and data mining LANG
-scopus_journals <- readxl::read_excel("~/Desktop/Local.Journals/Scopus.xlsx")
-scopus_journals <- scopus_journals %>% group_by(journal_name, issn, eissn) %>%
-                                       summarise(across(everything(), ~ paste(unique(.), collapse = ";")), .groups = "drop")
-scopus_journals[scopus_journals == "NA"] <- NA
-scopus_journals$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", scopus_journals$issn)
-scopus_journals$eissn <- sub("^(.{4})(.{4})$", "\\1-\\2", scopus_journals$eissn)
-
-
-# DOAJ upload and data mining LANG
-doaj_journals <- read.csv("~/Desktop/Local.Journals/DOAJ.csv")
-doaj_journals$issn <- ifelse(!is.na(doaj_journals$issn) & doaj_journals$issn != "", 
-                             str_pad(doaj_journals$issn, width = 8, side = "left", pad = "0"), 
-                             doaj_journals$issn)
-doaj_journals$eissn <- ifelse(!is.na(doaj_journals$eissn) & doaj_journals$eissn != "", 
-                              str_pad(doaj_journals$eissn, width = 8, side = "left", pad = "0"), 
-                              doaj_journals$eissn)
-doaj_journals$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", doaj_journals$issn)
-doaj_journals$eissn <- sub("^(.{4})(.{4})$", "\\1-\\2", doaj_journals$eissn)
-
+# DOAJ language data upload and mining
+doaj_language <- read.csv("~/Desktop/Local.Journals/languages_local_variable/DOAJ.csv") %>% select(issn, eissn, language) %>%
+                                                                                            rename(doaj_lang = language)
+doaj_language$issn <- ifelse(!is.na(doaj_language$issn) & doaj_language$issn != "", 
+                             str_pad(doaj_language$issn, width = 8, side = "left", pad = "0"), 
+                             doaj_language$issn)
+doaj_language$eissn <- ifelse(!is.na(doaj_language$eissn) & doaj_language$eissn != "", 
+                              str_pad(doaj_language$eissn, width = 8, side = "left", pad = "0"), 
+                              doaj_language$eissn)
+doaj_language$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", doaj_language$issn)
+doaj_language$eissn <- sub("^(.{4})(.{4})$", "\\1-\\2", doaj_language$eissn)
 
 
 
@@ -166,13 +163,7 @@ cwts_journals <- cwts_journals %>% mutate(CWTS_ID = paste0("CWTS", row_number())
 openalex_journals$issn_codes <- apply(openalex_journals[, c("issn", "issn_l")], 1, function(x) {
                                       unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
                                       paste(unique_values, collapse = ";")})
-openalex_journals_50$issn_codes <- apply(openalex_journals_50[, c("issn", "issn_l")], 1, function(x) {
-                                         unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
-                                         paste(unique_values, collapse = ";")})
 mjl_journals$issn_codes <- apply(mjl_journals[, c("issn", "eissn")], 1, function(x) {
-                                 unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
-                                 paste(unique_values, collapse = ";")})
-jcr_journals$issn_codes <- apply(jcr_journals[, c("issn", "eissn")], 1, function(x) {
                                  unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
                                  paste(unique_values, collapse = ";")})
 scopus_journals$issn_codes <- apply(scopus_journals[, c("issn", "eissn")], 1, function(x) {
@@ -181,15 +172,8 @@ scopus_journals$issn_codes <- apply(scopus_journals[, c("issn", "eissn")], 1, fu
 doaj_journals$issn_codes <- apply(doaj_journals[, c("issn", "eissn")], 1, function(x) {
                                   unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
                                   paste(unique_values, collapse = ";")})
-sjr_journals$issn_codes <- apply(sjr_journals[, c("issn", "eissn")], 1, function(x) {
-                                 unique_values <- unique(unlist(strsplit(na.omit(x), ";")))
-                                 paste(unique_values, collapse = ";")})
 
 
-# create variable to unify all journal names variants in Scopus
-scopus_journals <- scopus_journals %>% rowwise() %>%
-                                       mutate(journal_name_variants = paste(unique(unlist(strsplit(c_across(`Related Title 1`:`Other Related Title 4`)[!is.na(c_across(`Related Title 1`:`Other Related Title 4`))], ";"))), collapse = ";")) %>%
-                                       ungroup()
 
 
 
