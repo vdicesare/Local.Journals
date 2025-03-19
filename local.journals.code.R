@@ -121,11 +121,13 @@ openalex_journals <- openalex_journals %>% left_join(citations_local_variable %>
 
 
 ### languages local variable
-# MJL language data upload (mainstream = English & Multi-Language)
+# MJL language data upload and mining (mainstream = English & Multi-Language)
 mjl_language <- read.csv("~/Desktop/Local.Journals/languages_local_variable/MJL.csv") %>% select(issn, eissn, Languages) %>%
                                                                                           rename(mjl_lang = Languages)
 mjl_language <- mjl_language %>% distinct(issn, eissn, mjl_lang, .keep_all = TRUE) %>%
                                  filter(mjl_lang != "" & !is.na(mjl_lang))
+mjl_language <- mjl_language %>% mutate(eissn = if_else(eissn %in% issn, NA_character_, eissn))
+mjl_language <- mjl_language %>% mutate(issn = na_if(trimws(issn), ""))
 
 # Scopus language data upload and mining
 scopus_language <- readxl::read_excel("~/Desktop/Local.Journals/languages_local_variable/Scopus.xlsx") %>% select(issn, eissn, language) %>%
@@ -148,27 +150,33 @@ doaj_language$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", doaj_language$issn)
 doaj_language$eissn <- sub("^(.{4})(.{4})$", "\\1-\\2", doaj_language$eissn)
 doaj_language <- doaj_language %>% distinct(issn, eissn, doaj_lang, .keep_all = TRUE) %>%
                                    filter(doaj_lang != "" & !is.na(doaj_lang))
+doaj_language <- doaj_language %>% mutate(issn = na_if(trimws(issn), ""))
 
 # match to OpenAlex by issn and issn_l
-merge_language_data <- function(main_df, lang_df, lang_var) {main_df %>%
-                                left_join(lang_df, by = c("issn" = "issn")) %>%
-                                left_join(lang_df, by = c("issn" = "eissn")) %>%
-                                left_join(lang_df, by = c("issn_l" = "issn")) %>%
-                                left_join(lang_df, by = c("issn_l" = "eissn")) %>%
-                                mutate(!!lang_var := coalesce(!!sym(paste0(lang_var, ".x")), 
-                                       !!sym(paste0(lang_var, ".y")),
-                                       !!sym(paste0(lang_var, ".x.x")),
-                                       !!sym(paste0(lang_var, ".y.y")))) %>%
-                                select(-ends_with(".x"), -ends_with(".y"))}
+openalex_journals <- openalex_journals %>% left_join(mjl_language %>%
+                                                     select(issn, mjl_lang),
+                                                     by = c("issn" = "issn")) %>%
+                                           rename(mjl_lang_1 = mjl_lang)
+openalex_journals <- openalex_journals %>% left_join(mjl_language %>%
+                                                     select(eissn, mjl_lang),
+                                                     by = c("issn" = "eissn")) %>%
+                                           rename(mjl_lang_2 = mjl_lang)
+openalex_journals <- openalex_journals %>% left_join(mjl_language %>%
+                                                     select(issn, mjl_lang),
+                                                     by = c("issn_l" = "issn")) %>%
+                                           rename(mjl_lang_3 = mjl_lang)
 
-openalex_journals <- merge_language_data(openalex_journals, mjl_language, "mjl_lang")
-openalex_journals <- merge_language_data(openalex_journals, scopus_language, "scopus_lang")
-openalex_journals <- merge_language_data(openalex_journals, doaj_language, "doaj_lang")
+openalex_journals <- openalex_journals %>% mutate(mjl_lang_0 = coalesce(mjl_lang_1, mjl_lang_2, mjl_lang_3)) %>%
+                                           select(-mjl_lang_1, -mjl_lang_2, -mjl_lang_3)
+openalex_journals <- openalex_journals %>% distinct()
 
 
+openalex_journals <- openalex_journals %>% left_join(mjl_language %>%
+                                                     select(eissn, mjl_lang),
+                                                     by = c("issn_l" = "eissn")) %>%
+                                           rename(mjl_lang_4 = mjl_lang)
 
-
-
+### NOT WORKING, MAYBE RUN THIS PART BEFORE, WHEN I HAVE ONE ROW PER JOURNAL AT THE BEGINNING
 
 
 
