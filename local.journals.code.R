@@ -120,16 +120,20 @@ openalex_journals <- openalex_journals %>% left_join(citations_local_variable %>
                                                      by = c("journal_id", "journal_name"))
 
 
-###### MATCHEAR LAS VARIABLES LANGUAGE DE LAS OTRAS BBDD CON ESTAS REVISTAS OA
+### languages local variable
 # MJL language data upload (mainstream = English & Multi-Language)
 mjl_language <- read.csv("~/Desktop/Local.Journals/languages_local_variable/MJL.csv") %>% select(issn, eissn, Languages) %>%
                                                                                           rename(mjl_lang = Languages)
+mjl_language <- mjl_language %>% distinct(issn, eissn, mjl_lang, .keep_all = TRUE) %>%
+                                 filter(mjl_lang != "" & !is.na(mjl_lang))
 
 # Scopus language data upload and mining
 scopus_language <- readxl::read_excel("~/Desktop/Local.Journals/languages_local_variable/Scopus.xlsx") %>% select(issn, eissn, language) %>%
                                                                                                            rename(scopus_lang = language)
 scopus_language$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", scopus_language$issn)
 scopus_language$eissn <- sub("^(.{4})(.{4})$", "\\1-\\2", scopus_language$eissn)
+scopus_language <- scopus_language %>% distinct(issn, eissn, scopus_lang, .keep_all = TRUE) %>%
+                                       filter(scopus_lang != "" & !is.na(scopus_lang))
 
 # DOAJ language data upload and mining
 doaj_language <- read.csv("~/Desktop/Local.Journals/languages_local_variable/DOAJ.csv") %>% select(issn, eissn, language) %>%
@@ -142,6 +146,24 @@ doaj_language$eissn <- ifelse(!is.na(doaj_language$eissn) & doaj_language$eissn 
                               doaj_language$eissn)
 doaj_language$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", doaj_language$issn)
 doaj_language$eissn <- sub("^(.{4})(.{4})$", "\\1-\\2", doaj_language$eissn)
+doaj_language <- doaj_language %>% distinct(issn, eissn, doaj_lang, .keep_all = TRUE) %>%
+                                   filter(doaj_lang != "" & !is.na(doaj_lang))
+
+# match to OpenAlex by issn and issn_l
+merge_language_data <- function(main_df, lang_df, lang_var) {main_df %>%
+                                left_join(lang_df, by = c("issn" = "issn")) %>%
+                                left_join(lang_df, by = c("issn" = "eissn")) %>%
+                                left_join(lang_df, by = c("issn_l" = "issn")) %>%
+                                left_join(lang_df, by = c("issn_l" = "eissn")) %>%
+                                mutate(!!lang_var := coalesce(!!sym(paste0(lang_var, ".x")), 
+                                       !!sym(paste0(lang_var, ".y")),
+                                       !!sym(paste0(lang_var, ".x.x")),
+                                       !!sym(paste0(lang_var, ".y.y")))) %>%
+                                select(-ends_with(".x"), -ends_with(".y"))}
+
+openalex_journals <- merge_language_data(openalex_journals, mjl_language, "mjl_lang")
+openalex_journals <- merge_language_data(openalex_journals, scopus_language, "scopus_lang")
+openalex_journals <- merge_language_data(openalex_journals, doaj_language, "doaj_lang")
 
 
 
