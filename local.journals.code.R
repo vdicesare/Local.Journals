@@ -17,6 +17,16 @@ openalex_journals$issn <- gsub(",", "; ", openalex_journals$issn)
 openalex_journals$issn <- gsub("\\[|\\]", "", openalex_journals$issn)
 openalex_journals$issn <- gsub('"', "", openalex_journals$issn)
 
+# remove duplicates and store second issn code in issn_l 
+openalex_journals <- openalex_journals %>% mutate(issn_cleaned = str_split(issn, "; "),
+                                                  issn_l = if_else(issn_l %in% unlist(issn_cleaned), NA_character_, issn_l)) %>%
+                                                  select(-issn_cleaned)
+
+openalex_journals <- openalex_journals %>% mutate(issn_split = str_split(issn, "; "),
+                                                  issn_l = if_else(lengths(issn_split) > 1, map_chr(issn_split, ~ .x[2]), issn_l),
+                                                  issn = map_chr(issn_split, ~ .x[1])) %>%
+                                                  select(-issn_split)
+
 # replace the subfield, field and domain codes with the corresponding tags from OpenAlex topics
 openalex_topics <- readxl::read_excel("~/Desktop/Local.Journals/OAtopics.xlsx")
 subfield_lookup <- openalex_topics %>% select(subfield_id, subfield_name) %>% distinct()
