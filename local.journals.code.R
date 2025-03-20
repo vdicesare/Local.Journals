@@ -152,6 +152,17 @@ openalex_journals <- openalex_journals %>% left_join(mjl_language %>% select(MJL
                                            left_join(doaj_language %>% select(DOAJ_ID, doaj_lang), by = "DOAJ_ID")
 openalex_journals <- openalex_journals %>% select(-OA_issn, -MJL_ID, -SCOP_ID, -DOAJ_ID)
 
+# create a new variable to identify if a journal publishes in mainstream language (= English & Multi-Language in MJL, ENG in Scopus, English in DOAJ and en in OpenAlex)
+openalex_journals <- openalex_journals %>% mutate(mainstream_lang = case_when(!is.na(scopus_lang) & str_detect(scopus_lang, "\\bENG\\b") ~ 1,
+                                                                              !is.na(scopus_lang) ~ 0,
+                                                                              !is.na(mjl_lang) & (str_detect(mjl_lang, "English") | str_detect(mjl_lang, "Multi-Language")) ~ 1,
+                                                                              !is.na(mjl_lang) ~ 0,
+                                                                              !is.na(doaj_lang) & str_detect(doaj_lang, "English") ~ 1,
+                                                                              !is.na(doaj_lang) ~ 0,
+                                                                              !is.na(language) & str_detect(language, "\\ben\\b") ~ 1,
+                                                                              !is.na(language) ~ 0,
+                                                                              TRUE ~ NA_real_))
+
 
 ### references local variable
 # read files and split into 20 dataframes for processing
