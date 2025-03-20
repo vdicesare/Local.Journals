@@ -46,6 +46,113 @@ openalex_journals$field <- replace_codes_with_tags(openalex_journals$field, fiel
 openalex_journals$domain <- replace_codes_with_tags(openalex_journals$domain, domain_lookup, "domain_id", "domain_name")
 
 
+### languages local variable
+# MJL language data upload and mining (mainstream = English & Multi-Language)
+mjl_language <- read.csv("~/Desktop/Local.Journals/languages_local_variable/MJL.csv") %>% select(issn, eissn, Languages) %>%
+  rename(mjl_lang = Languages)
+mjl_language <- mjl_language %>% distinct(issn, eissn, mjl_lang, .keep_all = TRUE) %>%
+  filter(mjl_lang != "" & !is.na(mjl_lang))
+mjl_language <- mjl_language %>% mutate(eissn = if_else(eissn %in% issn, NA_character_, eissn))
+mjl_language <- mjl_language %>% mutate(issn = na_if(trimws(issn), ""))
+
+# Scopus language data upload and mining (mainstream = ENG)
+scopus_language <- readxl::read_excel("~/Desktop/Local.Journals/languages_local_variable/Scopus.xlsx") %>% select(issn, eissn, language) %>%
+  rename(scopus_lang = language)
+scopus_language$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", scopus_language$issn)
+scopus_language$eissn <- sub("^(.{4})(.{4})$", "\\1-\\2", scopus_language$eissn)
+scopus_language <- scopus_language %>% distinct(issn, eissn, scopus_lang, .keep_all = TRUE) %>%
+  filter(scopus_lang != "" & !is.na(scopus_lang))
+
+# DOAJ language data upload and mining (mainstream = English)
+doaj_language <- read.csv("~/Desktop/Local.Journals/languages_local_variable/DOAJ.csv") %>% select(issn, eissn, language) %>%
+  rename(doaj_lang = language)
+doaj_language$issn <- ifelse(!is.na(doaj_language$issn) & doaj_language$issn != "", 
+                             str_pad(doaj_language$issn, width = 8, side = "left", pad = "0"), 
+                             doaj_language$issn)
+doaj_language$eissn <- ifelse(!is.na(doaj_language$eissn) & doaj_language$eissn != "", 
+                              str_pad(doaj_language$eissn, width = 8, side = "left", pad = "0"), 
+                              doaj_language$eissn)
+doaj_language$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", doaj_language$issn)
+doaj_language$eissn <- sub("^(.{4})(.{4})$", "\\1-\\2", doaj_language$eissn)
+doaj_language <- doaj_language %>% distinct(issn, eissn, doaj_lang, .keep_all = TRUE) %>%
+  filter(doaj_lang != "" & !is.na(doaj_lang))
+doaj_language <- doaj_language %>% mutate(issn = na_if(trimws(issn), ""))
+
+# add unique identifiers to each dataframe
+openalex_journals <- openalex_journals %>% mutate(OA_ID = paste0("OA", row_number())) %>%
+                                           relocate(OA_ID)
+mjl_language <- mjl_language %>% mutate(MJL_ID = paste0("MJL", row_number())) %>%
+                                 relocate(MJL_ID)
+scopus_language <- scopus_language %>% mutate(SCOP_ID = paste0("SCOP", row_number())) %>%
+                                       relocate(SCOP_ID)
+doaj_language <- doaj_language %>% mutate(DOAJ_ID = paste0("DOAJ", row_number())) %>%
+                                   relocate(DOAJ_ID)
+
+# create variable to unify all ISSN codes per dataframe
+openalex_journals$OA_issn <- apply(openalex_journals[, c("issn", "issn_l")], 1, function(x) {
+                                   unique_values <- unique(na.omit(x))
+                                   paste(unique_values, collapse = ";")})
+mjl_language$MJL_issn <- apply(mjl_language[, c("issn", "eissn")], 1, function(x) {
+                               unique_values <- unique(na.omit(x))
+                               paste(unique_values, collapse = ";")})
+scopus_language$SCOP_issn <- apply(scopus_language[, c("issn", "eissn")], 1, function(x) {
+                                   unique_values <- unique(na.omit(x))
+                                   paste(unique_values, collapse = ";")})
+doaj_language$DOAJ_issn <- apply(doaj_language[, c("issn", "eissn")], 1, function(x) {
+                                 unique_values <- unique(na.omit(x))
+                                 paste(unique_values, collapse = ";")})
+
+# prepare dataframes for matching
+openalex_journals_match <- subset(openalex_journals, select = c("OA_ID", "OA_issn"))
+openalex_journals_match <- openalex_journals_match %>% mutate(OA_issn = strsplit(as.character(OA_issn), ";")) %>%
+                                                       unnest(OA_issn) %>%
+                                                       mutate(OA_issn = gsub("\\s+", "", OA_issn)) %>%
+                                                       filter(OA_issn != "") %>%
+                                                       distinct(OA_ID, OA_issn)
+
+mjl_language_match <- subset(mjl_language, select = c("MJL_ID", "MJL_issn"))
+mjl_language_match <- mjl_language_match %>% mutate(MJL_issn = strsplit(as.character(MJL_issn), ";")) %>%
+                                             unnest(MJL_issn) %>%
+                                             mutate(MJL_issn = gsub("\\s+", "", MJL_issn)) %>%
+                                             filter(MJL_issn != "") %>%
+                                             distinct(MJL_ID, MJL_issn)
+
+scopus_language_match <- subset(scopus_language, select = c("SCOP_ID", "SCOP_issn"))
+scopus_language_match <- scopus_language_match %>% mutate(SCOP_issn = strsplit(as.character(SCOP_issn), ";")) %>%
+                                                   unnest(SCOP_issn) %>%
+                                                   mutate(SCOP_issn = gsub("\\s+", "", SCOP_issn)) %>%
+                                                   filter(SCOP_issn != "") %>%
+                                                   distinct(SCOP_ID, SCOP_issn)
+
+doaj_language_match <- subset(doaj_language, select = c("DOAJ_ID", "DOAJ_issn"))
+doaj_language_match <- doaj_language_match %>% mutate(DOAJ_issn = strsplit(as.character(DOAJ_issn), ";")) %>%
+                                               unnest(DOAJ_issn) %>%
+                                               mutate(DOAJ_issn = gsub("\\s+", "", DOAJ_issn)) %>%
+                                               filter(DOAJ_issn != "") %>%
+                                               distinct(DOAJ_ID, DOAJ_issn)
+
+# match all dataframes by the journals' ISSN codes to OpenAlex
+ddff_ISSNs_match <- openalex_journals_match %>% left_join(mjl_language_match, by = c("OA_issn" = "MJL_issn"), relationship = "many-to-many") %>%
+                                                left_join(scopus_language_match, by = c("OA_issn" = "SCOP_issn"), relationship = "many-to-many") %>%
+                                                left_join(doaj_language_match, by = c("OA_issn" = "DOAJ_issn"), relationship = "many-to-many") %>%
+                                                select(OA_ID, MJL_ID, SCOP_ID, DOAJ_ID, OA_issn) %>%
+                                                rename(issn = OA_issn)
+
+# remove ISSN code variable, duplicated rows, cases with only one ID, and group rows by the OpenAlex ID
+ddff_ISSNs_match <- subset(ddff_ISSNs_match, select = c("OA_ID", "MJL_ID", "SCOP_ID", "DOAJ_ID"))
+ddff_ISSNs_match <- ddff_ISSNs_match %>% distinct()
+ddff_ISSNs_match <- ddff_ISSNs_match[rowSums(!is.na(ddff_ISSNs_match)) > 1, ]
+ddff_ISSNs_match <- ddff_ISSNs_match %>% group_by(OA_ID) %>%
+                                         summarise(across(everything(), ~ unique(na.omit(.))[1]), .groups = "drop")
+
+# merge the language variables from MJL, Scopus and DOAJ into OpenAlex journals
+openalex_journals <- openalex_journals %>% left_join(ddff_ISSNs_match, by = c("OA_ID" = "OA_ID"))
+openalex_journals <- openalex_journals %>% left_join(mjl_language %>% select(MJL_ID, mjl_lang), by = "MJL_ID") %>%
+                                           left_join(scopus_language %>% select(SCOP_ID, scopus_lang), by = "SCOP_ID") %>%
+                                           left_join(doaj_language %>% select(DOAJ_ID, doaj_lang), by = "DOAJ_ID")
+openalex_journals <- openalex_journals %>% select(-OA_issn, -MJL_ID, -SCOP_ID, -DOAJ_ID)
+
+
 ### references local variable
 # read files and split into 20 dataframes for processing
 references_files <- list.files(path = "~/Desktop/Local.Journals/references_local_variable", pattern = "local_journals_OA2503_references_local_variable_.*", full.names = TRUE)
@@ -121,36 +228,7 @@ openalex_journals <- openalex_journals %>% left_join(citations_local_variable %>
 
 
 ### languages local variable
-# MJL language data upload and mining (mainstream = English & Multi-Language)
-mjl_language <- read.csv("~/Desktop/Local.Journals/languages_local_variable/MJL.csv") %>% select(issn, eissn, Languages) %>%
-                                                                                          rename(mjl_lang = Languages)
-mjl_language <- mjl_language %>% distinct(issn, eissn, mjl_lang, .keep_all = TRUE) %>%
-                                 filter(mjl_lang != "" & !is.na(mjl_lang))
-mjl_language <- mjl_language %>% mutate(eissn = if_else(eissn %in% issn, NA_character_, eissn))
-mjl_language <- mjl_language %>% mutate(issn = na_if(trimws(issn), ""))
 
-# Scopus language data upload and mining
-scopus_language <- readxl::read_excel("~/Desktop/Local.Journals/languages_local_variable/Scopus.xlsx") %>% select(issn, eissn, language) %>%
-                                                                                                           rename(scopus_lang = language)
-scopus_language$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", scopus_language$issn)
-scopus_language$eissn <- sub("^(.{4})(.{4})$", "\\1-\\2", scopus_language$eissn)
-scopus_language <- scopus_language %>% distinct(issn, eissn, scopus_lang, .keep_all = TRUE) %>%
-                                       filter(scopus_lang != "" & !is.na(scopus_lang))
-
-# DOAJ language data upload and mining
-doaj_language <- read.csv("~/Desktop/Local.Journals/languages_local_variable/DOAJ.csv") %>% select(issn, eissn, language) %>%
-                                                                                            rename(doaj_lang = language)
-doaj_language$issn <- ifelse(!is.na(doaj_language$issn) & doaj_language$issn != "", 
-                             str_pad(doaj_language$issn, width = 8, side = "left", pad = "0"), 
-                             doaj_language$issn)
-doaj_language$eissn <- ifelse(!is.na(doaj_language$eissn) & doaj_language$eissn != "", 
-                              str_pad(doaj_language$eissn, width = 8, side = "left", pad = "0"), 
-                              doaj_language$eissn)
-doaj_language$issn <- sub("^(.{4})(.{4})$", "\\1-\\2", doaj_language$issn)
-doaj_language$eissn <- sub("^(.{4})(.{4})$", "\\1-\\2", doaj_language$eissn)
-doaj_language <- doaj_language %>% distinct(issn, eissn, doaj_lang, .keep_all = TRUE) %>%
-                                   filter(doaj_lang != "" & !is.na(doaj_lang))
-doaj_language <- doaj_language %>% mutate(issn = na_if(trimws(issn), ""))
 
 # match to OpenAlex by issn and issn_l
 openalex_journals <- openalex_journals %>% left_join(mjl_language %>%
