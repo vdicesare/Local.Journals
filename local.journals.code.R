@@ -236,3 +236,21 @@ openalex_journals <- openalex_journals %>% left_join(citations_local_variable %>
                                                        mutate(journal_id = as.numeric(journal_id)) %>%
                                                        rename(cits_country = country),
                                                      by = c("journal_id"))
+
+
+### Table 2. Descriptive measures of the variables at the journal level
+# compute descriptive measures with variables refs_prop, cits_prop and mainstream_lang
+print(mean(openalex_journals$refs_prop, na.rm = TRUE))
+print(median(openalex_journals$refs_prop, na.rm = TRUE))
+
+print(min(openalex_journals$refs_prop, na.rm = TRUE))
+print(max(openalex_journals$refs_prop, na.rm = TRUE))
+
+print(quantile(openalex_journals$refs_prop, probs = c(0.25,0.75), na.rm = TRUE))
+print(sd(openalex_journals$refs_prop, na.rm = TRUE))
+
+print(openalex_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
+                            summarise(total_zeros = sum(mainstream_lang == 0, na.rm = TRUE)))
+
+
+### figures
