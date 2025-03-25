@@ -252,5 +252,17 @@ print(sd(openalex_journals$refs_prop, na.rm = TRUE))
 print(openalex_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
                             summarise(total_zeros = sum(mainstream_lang == 0, na.rm = TRUE)))
 
+print(openalex_journals %>% filter(refs_prop < 0.38) %>%
+                            summarise(total_unique_journals = n_distinct(journal_id)))
 
-### figures
+print(openalex_journals %>% filter(cits_prop >= 0.75) %>%
+                            summarise(total_unique_journals = n_distinct(journal_id)))
+
+
+### Figure 1:
+
+
+### Figure 2:
+
+
+### Figure 3:
