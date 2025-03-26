@@ -6,6 +6,8 @@ library(readxl)
 library(readr)
 library(stringr)
 library(bit64)
+library(ggplot2)
+library(ggVennDiagram)
 options(scipen = 999)
 
 
@@ -259,7 +261,7 @@ print(openalex_journals %>% filter(cits_prop >= 0.75) %>%
                             summarise(total_unique_journals = n_distinct(journal_id)))
 
 
-### Figure 1: Venn diagram
+### Figure 1: Intersections of conditions that allow for the identification of knowledge bridging journals (n = 1,461) within a larger OpenAlex dataset (N = 59,230)
 # compute the total number of unique journals that meet all three conditions at once
 print(openalex_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
                             filter(mainstream_lang == 0, refs_prop < 0.38, cits_prop >= 0.75) %>%
@@ -270,51 +272,28 @@ print(openalex_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
                             filter(refs_prop < 0.38, cits_prop >= 0.75) %>%
                             summarise(total_unique_journals = n_distinct(journal_id)))
 
-# plot Venn diagram MEJORAR EL DISEÑO, VER SI LOS CÍRCULOS REPRESENTAN EL TAMAÑO DE CADA SUBSET
-library(VennDiagram)
-venn.plot <- draw.triple.venn(
-  area1 = 7984,  # Languages
-  area2 = 41537, # References
-  area3 = 16601, # Citations
-  
-  # Intersections
-  n12 = 4519,  # Languages & References
-  n13 = 3683,  # Languages & Citations
-  n23 = 7295,  # References & Citations
-  n123 = 1461, # All Intersections
-  
-  # Categories
-  category = c("Non-English", "Refs < 0.38", "Cits ≥ 0.75"),
-  
-  # Colors and transparency
-  fill = c(alpha("#440154ff", 0.3), alpha('#21908dff', 0.3), alpha('#fde725ff', 0.3)),
-  
-  # Adjustments for the look
-  alpha = 0.5,         # Transparency
-  cex = 0.5,           # Number size inside circles
-  cat.cex = 0.3,       # Category label size
-  cat.col = c("#440154ff", '#21908dff', '#fde725ff'),  # Category label colors
-  
-  # Positioning and style adjustments
-  cat.pos = c(-27, 27, 135),  # Category label positions
-  cat.dist = c(0.055, 0.055, 0.085),  # Category distance from the circle
-  cat.fontfamily = "sans",    # Font family for category labels
-  
-  # Optional plot aesthetics
-  fontfamily = "sans",   # Font family for numbers
-  rotation = 1,          # Rotation of the diagram
-  lwd = 1,               # Line width for the diagram
-  col = c("#440154ff", '#21908dff', '#fde725ff'), # Colors of the circles
-  
-  # Output settings for a better plot appearance
-  filename = "~/Desktop/Local.Journals/venn_diagram.png",  # Save as PNG file in your working directory
-  output = TRUE,
-  imagetype = "png",     # Output as PNG
-  height = 480,          # Height of the image
-  width = 480,           # Width of the image
-  resolution = 300,      # Resolution of the image
-  compression = "lzw"    # Compression for PNG
-)
+# define intersecting journals subsets
+langs <- paste0("langs", 1:1243) # Languages journals alone
+refs <- paste0("refs", 1:31184) # References journals alone
+cits <- paste0("cits", 1:7084) # Citations journals alone
+
+langs_refs <- paste0("langs_refs", 1:3058)   # Languages & References intersection
+langs_cits <- paste0("langs_cits", 1:2222)   # Languages & Citations intersection
+refs_cits <- paste0("refs_cits", 1:5834)   # References & Citations intersection
+langs_refs_cits <- paste0("langs_refs_cits", 1:1461) # All three intersections
+
+journals_subsets <- list("Non-English publishing" = c(langs, langs_refs, langs_cits, langs_refs_cits),
+                         "Referenced proportion" = c(refs, langs_refs, refs_cits, langs_refs_cits),
+                         "Citing proportion" = c(cits, langs_cits, refs_cits, langs_refs_cits))
+
+# plot the Venn diagram
+figure_1 <- ggVennDiagram(journals_subsets, label_alpha = 0, edge_size = 0.3, edge_color = "gray",
+              category.names = c("Non-English\nlanguages", "Global\nreferences", "Local citations")) +
+  scale_fill_gradient(low = "#F4FAFE" , high = "#4981BF") +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  theme(axis.text = element_blank(), axis.ticks = element_blank(), axis.title = element_blank(), panel.grid = element_blank())
+ggsave("~/Desktop/Local.Journals/figure_1.png", plot = figure_1, width = 6.5, height = 6, dpi = 300)
 
 
 ### Figure 2:
