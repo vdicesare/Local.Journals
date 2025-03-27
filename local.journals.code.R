@@ -319,6 +319,8 @@ ggsave("~/Desktop/Local.Journals/figure_1.png", plot = figure_1, width = 6.5, he
 
 
 ### Figure 2:
+# subset the knowledge bridging journals meeting all three conditions
+knowledge_bridging_journals <- openalex_journals %>% filter(refs_prop < 0.38, cits_prop >= 0.75, mainstream_lang == 0)
 
 
 ### Figure 3:
