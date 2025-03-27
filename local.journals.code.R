@@ -8,6 +8,7 @@ library(stringr)
 library(bit64)
 library(ggplot2)
 library(ggVennDiagram)
+library(sf)
 options(scipen = 999)
 
 
@@ -262,6 +263,42 @@ openalex_journals <- openalex_journals %>% left_join(citations_local_variable %>
                                                      by = c("journal_id"))
 
 
+# clean country names
+unique_countries <- openalex_journals %>% select(refs_country, cits_country, langs_country) %>%
+                                          pivot_longer(everything()) %>%
+                                          distinct(value)
+non_matching_countries <- unique_countries %>% anti_join(world, by = c("value" = "region"))
+
+openalex_journals <- openalex_journals %>% mutate(across(c(refs_country, cits_country, langs_country), 
+                                           ~ case_when(. == "Türkiye" ~ "Turkey",
+                                                       . == "Réunion" ~ "Reunion",
+                                                       . == "Czechia" ~ "Czech Republic",
+                                                       . == "The Netherlands" ~ "Netherlands",
+                                                       . == "Hong Kong" ~ "China",
+                                                       . == "The Gambia" ~ "Gambia",
+                                                       . == "DR Congo" ~ "Democratic Republic of the Congo",
+                                                       . == "Congo Republic" ~ "Republic of Congo",
+                                                       . == "Macao" ~ "China",
+                                                       . == "Curaçao" ~ "Curacao",
+                                                       . == "Eswatini" ~ "Swaziland",
+                                                       . == "U.S. Virgin Islands" ~ "Virgin Islands",
+                                                       . == "Vatican City" ~ "Vatican",
+                                                       TRUE ~ .)))
+
+# import world coordinates and tweak a few country names
+world <- map_data("world")
+world <- world %>% mutate(across(region, 
+                   ~ case_when(. == "USA" ~ "United States",
+                               . == "UK" ~ "United Kingdom",
+                               . == "Trinidad" ~ "Trinidad and Tobago",
+                               . == "Tobago" ~ "Trinidad and Tobago",
+                               . == "Saint Kitts" ~ "St Kitts and Nevis",
+                               . == "Nevis" ~ "St Kitts and Nevis",
+                               . == "Antigua" ~ "Antigua and Barbuda",
+                               . == "Barbuda" ~ "Antigua and Barbuda",
+                               TRUE ~ .)))
+
+
 ### Table 2. Descriptive measures of the variables at the journal level
 # compute descriptive measures with variables refs_prop, cits_prop and mainstream_lang
 print(mean(openalex_journals$refs_prop, na.rm = TRUE))
@@ -324,3 +361,58 @@ knowledge_bridging_journals <- openalex_journals %>% filter(refs_prop < 0.38, ci
 
 
 ### Figure 3:
+### WORLD MAPS
+map.world <- st_read("~/Desktop/Local.Research/ne_110m_admin_0_countries/ne_110m_admin_0_countries.shp")
+
+# plot language world map
+local.language.map <- merge(map.world, local.language.countries, by.x = "ISO_A2_EH", by.y = "country", all.x = TRUE)
+
+# plot refs world map
+local.refs.map.q <- merge(map.world, local.refs.countries.q, by.x = "ISO_A2_EH", by.y = "country", all.x = TRUE)
+
+# plot cits world map
+local.cits.map.q <- merge(map.world, local.cits.countries.q, by.x = "ISO_A2_EH", by.y = "country", all.x = TRUE)
+
+## 3ºQ
+# create one faceted plot with 6 maps and 1 common legend
+local.toponyms.map.q$approach <- "Toponyms approach"
+local.language.map$approach <- "Languages approach"
+local.pubs.map.q$approach <- "Journals approach"
+local.database.map$approach <- "Databases approach"
+local.refs.map.q$approach <- "References approach"
+local.cits.map.q$approach <- "Citations approach"
+
+map.q <- rbind(local.toponyms.map.q, local.language.map, local.pubs.map.q, local.database.map, local.refs.map.q, local.cits.map.q)
+map.q$approach <- factor(map.q$approach, levels = c("Toponyms approach", "Languages approach", "Journals approach", "Databases approach", "References approach", "Citations approach"))
+
+ggplot() +
+  geom_sf(data = map.q, aes(fill = pubs.share)) +
+  scale_fill_viridis_c(name = "Publication share", na.value = "grey50", option = "plasma") +
+  facet_wrap(~approach, ncol = 2) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+ggsave("~/Desktop/Local.Research/Figure4.png", width = 6.27, height = 6.27, dpi = 300, bg = "white")
+
+
+
+
+### PRUEBA
+# install.packages("ggplot2")
+# install.packages("maps")
+library(ggplot2)
+library(maps)
+
+# Importar los datos con coordenadas
+world <- map_data("world")
+
+# Creamos el mapa. group = group conecta los puntos en el orden correcto
+ggplot(data = world, aes(x = long, y = lat, group = group)) + 
+  geom_polygon() 
+
+# Equivalente a
+ggplot(world, aes(map_id = region)) +
+  geom_map(data = world, map = world,
+           aes(x = long, y = lat, map_id = region)) 
+
+
+
