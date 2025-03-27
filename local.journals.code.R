@@ -165,6 +165,28 @@ openalex_journals <- openalex_journals %>% mutate(mainstream_lang = case_when(!i
                                                                               !is.na(language) ~ 0,
                                                                               TRUE ~ NA_real_))
 
+# identify the most publishing countries per journal to assign them to the languages outcome
+languages_local_variable <- list.files(path = "~/Desktop/Local.Journals/languages_local_variable", pattern = "local_journals_OA2503_languages_local_variable_.*", full.names = TRUE)
+languages_local_variable <- rbindlist(lapply(languages_local_variable, fread, sep = ","), fill = TRUE)
+
+# compute variable langs_count per unique combination of journal and its most citing country
+languages_local_variable <- languages_local_variable %>% group_by(journal_id, journal_name, country) %>%
+                                                         mutate(langs_count = n()) %>%
+                                                         ungroup()
+
+languages_local_variable <- within(languages_local_variable, rm(article_id))
+languages_local_variable <- languages_local_variable %>% distinct()
+
+languages_local_variable <- languages_local_variable %>% group_by(journal_id, journal_name) %>%
+                                                         filter(langs_count == max(langs_count)) %>%
+                                                         ungroup()
+
+# incorporate these langs variables to the main journals dataframe
+openalex_journals <- openalex_journals %>% left_join(languages_local_variable %>%
+                                                     mutate(journal_id = as.numeric(journal_id)) %>%
+                                                     rename(langs_country = country),
+                                                     by = c("journal_id"))
+
 
 ### references local variable
 # read files and split into 20 dataframes for processing
