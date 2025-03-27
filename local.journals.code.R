@@ -8,7 +8,7 @@ library(stringr)
 library(bit64)
 library(ggplot2)
 library(ggVennDiagram)
-library(sf)
+library(maps)
 options(scipen = 999)
 
 
@@ -166,28 +166,6 @@ openalex_journals <- openalex_journals %>% mutate(mainstream_lang = case_when(!i
                                                                               !is.na(language) ~ 0,
                                                                               TRUE ~ NA_real_))
 
-# identify the most publishing countries per journal to assign them to the languages outcome
-languages_local_variable <- list.files(path = "~/Desktop/Local.Journals/languages_local_variable", pattern = "local_journals_OA2503_languages_local_variable_.*", full.names = TRUE)
-languages_local_variable <- rbindlist(lapply(languages_local_variable, fread, sep = ","), fill = TRUE)
-
-# compute variable langs_count per unique combination of journal and its most citing country
-languages_local_variable <- languages_local_variable %>% group_by(journal_id, journal_name, country) %>%
-                                                         mutate(langs_count = n()) %>%
-                                                         ungroup()
-
-languages_local_variable <- within(languages_local_variable, rm(article_id))
-languages_local_variable <- languages_local_variable %>% distinct()
-
-languages_local_variable <- languages_local_variable %>% group_by(journal_id, journal_name) %>%
-                                                         filter(langs_count == max(langs_count)) %>%
-                                                         ungroup()
-
-# incorporate these langs variables to the main journals dataframe
-openalex_journals <- openalex_journals %>% left_join(languages_local_variable %>%
-                                                     mutate(journal_id = as.numeric(journal_id)) %>%
-                                                     rename(langs_country = country),
-                                                     by = c("journal_id"))
-
 
 ### references local variable
 # read files and split into 20 dataframes for processing
@@ -261,6 +239,21 @@ openalex_journals <- openalex_journals %>% left_join(citations_local_variable %>
                                                        mutate(journal_id = as.numeric(journal_id)) %>%
                                                        rename(cits_country = country),
                                                      by = c("journal_id"))
+
+
+# count the number of articles produced by each country, per journal and in total
+articles_per_country <- list.files(path = "~/Desktop/Local.Journals/articles_per_country", pattern = "local_journals_OA2503_articles_per_country_.*", full.names = TRUE)
+articles_per_country <- rbindlist(lapply(articles_per_country, fread, sep = ","), fill = TRUE)
+
+articles_per_country <- articles_per_country %>% group_by(journal_id, journal_name, country) %>%
+                                                 mutate(arts_count = n()) %>%
+                                                 ungroup()
+articles_per_country <- within(articles_per_country, rm(article_id))
+articles_per_country <- articles_per_country %>% distinct()
+
+articles_per_country <- articles_per_country %>% group_by(country) %>%
+                                                 mutate(arts_total = sum(arts_count, na.rm = TRUE)) %>%
+                                                 ungroup()
 
 
 # clean country names
@@ -361,58 +354,34 @@ knowledge_bridging_journals <- openalex_journals %>% filter(refs_prop < 0.38, ci
 
 
 ### Figure 3:
-### WORLD MAPS
-map.world <- st_read("~/Desktop/Local.Research/ne_110m_admin_0_countries/ne_110m_admin_0_countries.shp")
-
-# plot language world map
-local.language.map <- merge(map.world, local.language.countries, by.x = "ISO_A2_EH", by.y = "country", all.x = TRUE)
-
-# plot refs world map
-local.refs.map.q <- merge(map.world, local.refs.countries.q, by.x = "ISO_A2_EH", by.y = "country", all.x = TRUE)
-
-# plot cits world map
-local.cits.map.q <- merge(map.world, local.cits.countries.q, by.x = "ISO_A2_EH", by.y = "country", all.x = TRUE)
-
-## 3ºQ
-# create one faceted plot with 6 maps and 1 common legend
-local.toponyms.map.q$approach <- "Toponyms approach"
-local.language.map$approach <- "Languages approach"
-local.pubs.map.q$approach <- "Journals approach"
-local.database.map$approach <- "Databases approach"
-local.refs.map.q$approach <- "References approach"
-local.cits.map.q$approach <- "Citations approach"
-
-map.q <- rbind(local.toponyms.map.q, local.language.map, local.pubs.map.q, local.database.map, local.refs.map.q, local.cits.map.q)
-map.q$approach <- factor(map.q$approach, levels = c("Toponyms approach", "Languages approach", "Journals approach", "Databases approach", "References approach", "Citations approach"))
-
-ggplot() +
-  geom_sf(data = map.q, aes(fill = pubs.share)) +
-  scale_fill_viridis_c(name = "Publication share", na.value = "grey50", option = "plasma") +
-  facet_wrap(~approach, ncol = 2) +
-  theme_minimal() +
-  theme(legend.position = "bottom")
-ggsave("~/Desktop/Local.Research/Figure4.png", width = 6.27, height = 6.27, dpi = 300, bg = "white")
+### WORLD MAP desde un solo approach, el de los knowledge bridging journals. Teniendo estos journals ya aislados, lo que tengo que ver es cómo publican los países en ellos
+### Según el preprint: the color scale represents each country's proportion of papers published in knowledge bridging journals with respect to their total number of publication during 2023
+### The darker the hues indicate a low share of publications in knowledge bridging journals, whereas the lighter shades reveal higher proportions
 
 
+################ OK, SEGUIR POR ACÁ. NECESITO LA PRODUCCIÓN DE ARTÍCULOS INDIVIDUALES 2023 POR REVISTA Y SUS PAÍSES DE ORIGEN, o sea nº total de artículos por revista y nº de artículos por país dentro de cada revista. Luego necesito sacar la proporción según el nº de publicaciones en revistas knowledge bridging X PAÍS, respecto del nº total de publicaciones 2023 X PAÍS
+#
+knowledge_bridging_journals_countries <- knowledge_bridging_journals %>% mutate(journal_id = as.character(journal_id)) %>%
+                                                                         left_join(articles_per_country %>% mutate(journal_id = as.character(journal_id)), by = "journal_id") %>%
+                                                                         select(journal_id, country, arts_count, arts_total)
 
+#
+knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% group_by(country) %>%
+                                                                                   summarise(arts_count = sum(arts_count, na.rm = TRUE),
+                                                                                             arts_total = first(arts_total, na.rm = TRUE),
+                                                                                             arts_share = arts_count / arts_total) %>%
+                                                                                   ungroup() %>%
+                                                                                   rename(region = country)
 
-### PRUEBA
-# install.packages("ggplot2")
-# install.packages("maps")
-library(ggplot2)
-library(maps)
+#
+knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% left_join(world, by = c("region" = "region"))
 
-# Importar los datos con coordenadas
-world <- map_data("world")
-
-# Creamos el mapa. group = group conecta los puntos en el orden correcto
-ggplot(data = world, aes(x = long, y = lat, group = group)) + 
-  geom_polygon() 
-
-# Equivalente a
-ggplot(world, aes(map_id = region)) +
-  geom_map(data = world, map = world,
-           aes(x = long, y = lat, map_id = region)) 
-
-
+# PLOT TRIAL
+ggplot(knowledge_bridging_journals_countries, aes(map_id = region)) +
+  geom_map(aes(fill = arts_share), map = world) +
+  expand_limits(x = world$long, y = world$lat) +  # Expand the plot limits to the full world map
+  scale_fill_continuous(low = "#F4FAFE", high = "#4981BF", na.value = "grey") +  # Blue shades for arts_share
+  #theme_void() +  # Remove background and axes for cleaner look
+  labs(fill = "Arts Share") +  # Add a legend title
+  theme(legend.position = "bottom")  # Position the legend at the bottom
 
