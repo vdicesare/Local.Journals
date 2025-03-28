@@ -349,7 +349,7 @@ figure_1 <- ggVennDiagram(journals_subsets, label_alpha = 0, edge_size = 0.3, ed
 ggsave("~/Desktop/Local.Journals/figure_1.png", plot = figure_1, width = 6.5, height = 6, dpi = 300)
 
 
-### Figure 2:
+### Figure 2: Distribution of knowledge bridging journals by OpenAlex field and domain categories
 # subset the knowledge bridging journals meeting all three conditions for subsequent plotting
 knowledge_bridging_journals <- openalex_journals %>% filter(refs_prop < 0.38, cits_prop >= 0.75, mainstream_lang == 0)
 
@@ -367,7 +367,18 @@ knowledge_bridging_journals_fields <- knowledge_bridging_journals_fields %>% gro
                                                                              jours_share = jours_count / 1461, .groups = 'drop') %>%
                                                                              ungroup()
 
-# plot
+# plot the grouped barplot
+ggplot(na.omit(knowledge_bridging_journals_fields), aes(x = field, y = jours_share, fill = domain_name)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_x_discrete(limits = c("Veterinary", "Dentistry", "Nursing", "Medicine", "Health Professions",
+                              "Pharmacology, Toxicology and Pharmaceutics", "Immunology and Microbiology", "Neuroscience", "Biochemistry, Genetics and Molecular Biology", "Agricultural and Biological Sciences",
+                              "Chemical Engineering", "Mathematics", "Physics and Astronomy", "Chemistry", "Materials Science", "Energy", "Earth and Planetary Sciences", "Engineering", "Environmental Science", "Computer Science",
+                              "Decision Sciences", "Arts and Humanities", "Economics, Econometrics and Finance", "Business, Management and Accounting", "Psychology", "Social Sciences")) +
+  scale_fill_manual(values = c("Health Sciences" = "#D35400", "Life Sciences" = "#7BA9D9", "Physical Sciences" = "#F1C40F", "Social Sciences" = "#4981BF")) +
+  theme_minimal() +
+  labs(x = "Field", y = "Journal share", fill = "Domain") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave("~/Desktop/Local.Journals/figure_2.png", width = 10, height = 6, dpi = 300)
 
 
 ### Figure 3: Countries publication share in knowledge bridging journals with respect to (A) each country's publication total for 2023, and (B) the knowledge bridging journals' publication total for 2023
