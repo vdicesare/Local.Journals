@@ -361,6 +361,12 @@ openalex_fields_domains <- openalex_topics %>% select(field_name, domain_name) %
                                                distinct()
 knowledge_bridging_journals_fields <- knowledge_bridging_journals_fields %>% left_join(openalex_fields_domains, by = c("field" = "field_name"))
 
+# compute journals count and share per field and domain
+knowledge_bridging_journals_fields <- knowledge_bridging_journals_fields %>% group_by(domain_name, field) %>%
+                                                                             summarise(jours_count = n_distinct(journal_id),
+                                                                             jours_share = jours_count / 1461, .groups = 'drop') %>%
+                                                                             ungroup()
+
 # plot
 
 
