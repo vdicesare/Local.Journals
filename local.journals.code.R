@@ -350,8 +350,18 @@ ggsave("~/Desktop/Local.Journals/figure_1.png", plot = figure_1, width = 6.5, he
 
 
 ### Figure 2:
-# subset the knowledge bridging journals meeting all three conditions
+# subset the knowledge bridging journals meeting all three conditions for subsequent plotting
 knowledge_bridging_journals <- openalex_journals %>% filter(refs_prop < 0.38, cits_prop >= 0.75, mainstream_lang == 0)
+
+# prepare field and domain data for each knowledge bridging journal
+knowledge_bridging_journals_fields <- knowledge_bridging_journals %>% select(journal_id, journal_name, field) %>%
+                                                                      separate_rows(field, sep = "; ") %>%
+                                                                      distinct(journal_id, journal_name, field)
+openalex_fields_domains <- openalex_topics %>% select(field_name, domain_name) %>%
+                                               distinct()
+knowledge_bridging_journals_fields <- knowledge_bridging_journals_fields %>% left_join(openalex_fields_domains, by = c("field" = "field_name"))
+
+# plot
 
 
 ### Figure 3: Countries publication share in knowledge bridging journals with respect to (A) each country's publication total for 2023, and (B) the knowledge bridging journals' publication total for 2023
