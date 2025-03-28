@@ -9,6 +9,7 @@ library(bit64)
 library(ggplot2)
 library(ggVennDiagram)
 library(maps)
+library(scales)
 options(scipen = 999)
 
 
@@ -353,19 +354,13 @@ ggsave("~/Desktop/Local.Journals/figure_1.png", plot = figure_1, width = 6.5, he
 knowledge_bridging_journals <- openalex_journals %>% filter(refs_prop < 0.38, cits_prop >= 0.75, mainstream_lang == 0)
 
 
-### Figure 3:
-### WORLD MAP desde un solo approach, el de los knowledge bridging journals. Teniendo estos journals ya aislados, lo que tengo que ver es cómo publican los países en ellos
-### Según el preprint: the color scale represents each country's proportion of papers published in knowledge bridging journals with respect to their total number of publication during 2023
-### The darker the hues indicate a low share of publications in knowledge bridging journals, whereas the lighter shades reveal higher proportions
-
-
-################ OK, SEGUIR POR ACÁ. NECESITO LA PRODUCCIÓN DE ARTÍCULOS INDIVIDUALES 2023 POR REVISTA Y SUS PAÍSES DE ORIGEN, o sea nº total de artículos por revista y nº de artículos por país dentro de cada revista. Luego necesito sacar la proporción según el nº de publicaciones en revistas knowledge bridging X PAÍS, respecto del nº total de publicaciones 2023 X PAÍS
-#
+### Figure 3: Countries publication share in knowledge bridging journals with respect to (A) each country's publication total for 2023, and (B) the knowledge bridging journals' publication total for 2023
+# combine with the knowledge bridging journals their articles count and total variables
 knowledge_bridging_journals_countries <- knowledge_bridging_journals %>% mutate(journal_id = as.character(journal_id)) %>%
                                                                          left_join(articles_per_country %>% mutate(journal_id = as.character(journal_id)), by = "journal_id") %>%
                                                                          select(journal_id, country, arts_count, arts_total)
 
-#
+# summarise articles count, grand total (articles count per country within their 2023 production) and compute share per country
 knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% group_by(country) %>%
                                                                                    summarise(arts_count = sum(arts_count, na.rm = TRUE),
                                                                                              arts_total = first(arts_total, na.rm = TRUE),
@@ -373,15 +368,32 @@ knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %
                                                                                    ungroup() %>%
                                                                                    rename(region = country)
 
-#
-knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% left_join(world, by = c("region" = "region"))
+# compute articles inner total (articles total count within the knowledge bridging journals) and share per country
+knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% mutate(inner_total = sum(arts_count, na.rm = TRUE),
+                                                                                   inner_share = arts_count / inner_total)
 
-# PLOT TRIAL
-ggplot(knowledge_bridging_journals_countries, aes(map_id = region)) +
-  geom_map(aes(fill = arts_share), map = world) +
-  expand_limits(x = world$long, y = world$lat) +  # Expand the plot limits to the full world map
-  scale_fill_continuous(low = "#F4FAFE", high = "#4981BF", na.value = "grey") +  # Blue shades for arts_share
-  #theme_void() +  # Remove background and axes for cleaner look
-  labs(fill = "Arts Share") +  # Add a legend title
-  theme(legend.position = "bottom")  # Position the legend at the bottom
+# incorporate each countries' coordinates from the world dataframe
+knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% full_join(world, by = c("region" = "region"))
 
+# reshape share data from wide to long to facilitate faceting within the plot
+knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% pivot_longer(cols = c(arts_share, inner_share), 
+                                                                                   names_to = "share_type", 
+                                                                                   values_to = "share_value")
+
+# plot faceted maps
+ggplot(knowledge_bridging_journals_countries) +
+  geom_map(aes(map_id = region, fill = share_value), map = world) +
+  facet_wrap(~ share_type, scales = "free", , ncol = 1,
+             labeller = labeller(share_type = c("arts_share" = "(A)", 
+                                                "inner_share" = "(B)"))) +
+  expand_limits(x = world$long, y = world$lat) +
+  scale_fill_continuous(low = "#FFE5B4", high = "#D35400", na.value = "grey",
+                        labels = label_number(accuracy = 0.01)) +
+  theme_minimal() +
+  labs(fill = "Publication share") +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "bottom",
+        legend.key.width = unit(1, "cm"))
+ggsave("~/Desktop/Local.Journals/figure_3.png", width = 10, height = 12, dpi = 300)
