@@ -263,7 +263,7 @@ unique_countries <- openalex_journals %>% select(refs_country, cits_country, lan
                                           distinct(value)
 non_matching_countries <- unique_countries %>% anti_join(world, by = c("value" = "region"))
 
-openalex_journals <- openalex_journals %>% mutate(across(c(refs_country, cits_country, langs_country), 
+openalex_journals <- openalex_journals %>% mutate(across(c(refs_country, cits_country), 
                                            ~ case_when(. == "Türkiye" ~ "Turkey",
                                                        . == "Réunion" ~ "Reunion",
                                                        . == "Czechia" ~ "Czech Republic",
@@ -278,6 +278,22 @@ openalex_journals <- openalex_journals %>% mutate(across(c(refs_country, cits_co
                                                        . == "U.S. Virgin Islands" ~ "Virgin Islands",
                                                        . == "Vatican City" ~ "Vatican",
                                                        TRUE ~ .)))
+
+articles_per_country <- articles_per_country %>% mutate(across(country, 
+                                                              ~ case_when(. == "Türkiye" ~ "Turkey",
+                                                                          . == "Réunion" ~ "Reunion",
+                                                                          . == "Czechia" ~ "Czech Republic",
+                                                                          . == "The Netherlands" ~ "Netherlands",
+                                                                          . == "Hong Kong" ~ "China",
+                                                                          . == "The Gambia" ~ "Gambia",
+                                                                          . == "DR Congo" ~ "Democratic Republic of the Congo",
+                                                                          . == "Congo Republic" ~ "Republic of Congo",
+                                                                          . == "Macao" ~ "China",
+                                                                          . == "Curaçao" ~ "Curacao",
+                                                                          . == "Eswatini" ~ "Swaziland",
+                                                                          . == "U.S. Virgin Islands" ~ "Virgin Islands",
+                                                                          . == "Vatican City" ~ "Vatican",
+                                                                          TRUE ~ .)))
 
 # import world coordinates and tweak a few country names
 world <- map_data("world")
@@ -294,31 +310,97 @@ world <- world %>% mutate(across(region,
 
 
 ### Table 2. Descriptive measures of the variables at the journal level
-# compute descriptive measures with variables refs_prop, cits_prop and mainstream_lang
-print(mean(openalex_journals$refs_prop, na.rm = TRUE))
-print(median(openalex_journals$refs_prop, na.rm = TRUE))
+# compute descriptive measures with variables refs_prop, cits_prop and mainstream_lang per unique journal combination
+print(quantile(openalex_journals %>% distinct(journal_id, .keep_all = TRUE) %>% pull(refs_prop),
+                                                                                probs = 0.75, na.rm = TRUE))
 
-print(min(openalex_journals$refs_prop, na.rm = TRUE))
-print(max(openalex_journals$refs_prop, na.rm = TRUE))
-
-print(quantile(openalex_journals$refs_prop, probs = c(0.25,0.75), na.rm = TRUE))
-print(sd(openalex_journals$refs_prop, na.rm = TRUE))
+print(quantile(openalex_journals %>% distinct(journal_id, .keep_all = TRUE) %>% pull(cits_prop),
+                                                                                probs = 0.75, na.rm = TRUE))
 
 print(openalex_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
                             summarise(total_zeros = sum(mainstream_lang == 0, na.rm = TRUE)))
 
-print(openalex_journals %>% filter(refs_prop < 0.38) %>%
+print(openalex_journals %>% filter(refs_prop < 0.42) %>%
                             summarise(total_unique_journals = n_distinct(journal_id)))
 
-print(openalex_journals %>% filter(cits_prop >= 0.75) %>%
+print(openalex_journals %>% filter(cits_prop >= 0.86) %>%
                             summarise(total_unique_journals = n_distinct(journal_id)))
+
+
+### Table 3. Comparison of average values across all journals and knowledge bridging journals variables
+# compute cits and refs averages in all journals and in knowledge bridging journals
+print(openalex_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
+                            summarise(total_cits_total = sum(cits_total, na.rm = TRUE))) # / 59230 journals = 276.4 citations per journal
+
+print(knowledge_bridging_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
+                                      summarise(total_cits_total = sum(cits_total, na.rm = TRUE))) # / 1271 knowledge bridging journals = 8.2 citations per journal
+
+print(openalex_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
+                            summarise(total_refs_total = sum(refs_total, na.rm = TRUE))) # / 59230 journals = 2717.5 references per journal
+
+print(knowledge_bridging_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
+                                      summarise(total_refs_total = sum(refs_total, na.rm = TRUE))) # / 1271 knowledge bridging journals = 359.2 references per journal
+
+# compute citing and referenced countries averages in all journals and in knowledge bridging journals
+print(openalex_journals %>% filter(!is.na(cits_country)) %>%
+                            group_by(journal_id) %>%
+                            distinct(cits_country) %>%
+                            ungroup() %>%
+                            summarise(total_countries = n())) # / 59230 journals = 1.1 citing countries per journal
+
+print(knowledge_bridging_journals %>% filter(!is.na(cits_country)) %>%
+                                      group_by(journal_id) %>%
+                                      distinct(cits_country) %>%
+                                      ungroup() %>%
+                                      summarise(total_countries = n())) # / 1271 knowledge bridging journals = 1 citing country per journal
+
+print(openalex_journals %>% filter(!is.na(refs_country)) %>%
+                            group_by(journal_id) %>%
+                            distinct(refs_country) %>%
+                            ungroup() %>%
+                            summarise(total_countries = n())) # / 59230 journals = 1 referenced country per journal
+
+print(knowledge_bridging_journals %>% filter(!is.na(refs_country)) %>%
+                                      group_by(journal_id) %>%
+                                      distinct(refs_country) %>%
+                                      ungroup() %>%
+                                      summarise(total_countries = n())) # / 1271 knowledge bridging journals = 1.1 referenced countries per journal
+
+# identify the top 3 citing and referenced countries in all journals and in knowledge bridging journals
+print(openalex_journals %>% filter(!is.na(cits_country)) %>%
+                            distinct(journal_id, cits_country) %>%
+                            group_by(cits_country) %>%
+                            summarise(country_count = n()) %>%
+                            ungroup() %>%
+                            arrange(desc(country_count)))
+
+print(knowledge_bridging_journals %>% filter(!is.na(cits_country)) %>%
+                                      distinct(journal_id, cits_country) %>%
+                                      group_by(cits_country) %>%
+                                      summarise(country_count = n()) %>%
+                                      ungroup() %>%
+                                      arrange(desc(country_count)))
+
+print(openalex_journals %>% filter(!is.na(refs_country)) %>%
+                            distinct(journal_id, refs_country) %>%
+                            group_by(refs_country) %>%
+                            summarise(country_count = n()) %>%
+                            ungroup() %>%
+                            arrange(desc(country_count)))
+
+print(knowledge_bridging_journals %>% filter(!is.na(refs_country)) %>%
+                                      distinct(journal_id, refs_country) %>%
+                                      group_by(refs_country) %>%
+                                      summarise(country_count = n()) %>%
+                                      ungroup() %>%
+                                      arrange(desc(country_count)))
 
 
 ### Figure 1: Intersections of conditions that allow for the identification of knowledge bridging journals (n = 1,461) within a larger OpenAlex dataset (N = 59,230)
 # compute journals sets dynamically
 langs <- openalex_journals %>% filter(mainstream_lang == 0) %>% pull(journal_id) %>% unique()
-refs <- openalex_journals %>% filter(refs_prop < 0.38) %>% pull(journal_id) %>% unique()
-cits <- openalex_journals %>% filter(cits_prop >= 0.75) %>% pull(journal_id) %>% unique()
+refs <- openalex_journals %>% filter(refs_prop < 0.42) %>% pull(journal_id) %>% unique()
+cits <- openalex_journals %>% filter(cits_prop >= 0.86) %>% pull(journal_id) %>% unique()
 
 # compute their intersections
 langs_refs <- intersect(langs, refs)
@@ -346,7 +428,7 @@ ggsave("~/Desktop/Local.Journals/figure_1.png", plot = figure_1, width = 6.5, he
 
 ### Figure 2: Distribution of knowledge bridging journals by OpenAlex field and domain categories
 # subset the knowledge bridging journals meeting all three conditions for subsequent plotting
-knowledge_bridging_journals <- openalex_journals %>% filter(refs_prop < 0.38, cits_prop >= 0.75, mainstream_lang == 0)
+knowledge_bridging_journals <- openalex_journals %>% filter(refs_prop < 0.42, cits_prop >= 0.86, mainstream_lang == 0)
 
 # prepare field and domain data for each knowledge bridging journal
 knowledge_bridging_journals_fields <- knowledge_bridging_journals %>% select(journal_id, journal_name, field) %>%
@@ -359,7 +441,7 @@ knowledge_bridging_journals_fields <- knowledge_bridging_journals_fields %>% lef
 # compute journals count and share per field and domain
 knowledge_bridging_journals_fields <- knowledge_bridging_journals_fields %>% group_by(domain_name, field) %>%
                                                                              summarise(jours_count = n_distinct(journal_id),
-                                                                             jours_share = jours_count / 1461, .groups = 'drop') %>%
+                                                                             jours_share = jours_count / 1271, .groups = 'drop') %>%
                                                                              ungroup()
 
 # plot the grouped barplot
