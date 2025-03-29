@@ -7,7 +7,7 @@ library(readr)
 library(stringr)
 library(bit64)
 library(ggplot2)
-library(ggVennDiagram)
+library(eulerr)
 library(maps)
 library(scales)
 options(scipen = 999)
@@ -315,37 +315,32 @@ print(openalex_journals %>% filter(cits_prop >= 0.75) %>%
 
 
 ### Figure 1: Intersections of conditions that allow for the identification of knowledge bridging journals (n = 1,461) within a larger OpenAlex dataset (N = 59,230)
-# compute the total number of unique journals that meet all three conditions at once
-print(openalex_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
-                            filter(mainstream_lang == 0, refs_prop < 0.38, cits_prop >= 0.75) %>%
-                            summarise(total_unique_journals = n_distinct(journal_id)))
+# compute journals sets dynamically
+langs <- openalex_journals %>% filter(mainstream_lang == 0) %>% pull(journal_id) %>% unique()
+refs <- openalex_journals %>% filter(refs_prop < 0.38) %>% pull(journal_id) %>% unique()
+cits <- openalex_journals %>% filter(cits_prop >= 0.75) %>% pull(journal_id) %>% unique()
 
-# compute all three overlaps
-print(openalex_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
-                            filter(refs_prop < 0.38, cits_prop >= 0.75) %>%
-                            summarise(total_unique_journals = n_distinct(journal_id)))
+# compute their intersections
+langs_refs <- intersect(langs, refs)
+langs_cits <- intersect(langs, cits)
+refs_cits <- intersect(refs, cits)
+langs_refs_cits <- Reduce(intersect, list(langs, refs, cits))
 
-# define intersecting journals subsets
-langs <- paste0("langs", 1:1243) # Languages journals alone
-refs <- paste0("refs", 1:31184) # References journals alone
-cits <- paste0("cits", 1:7084) # Citations journals alone
+# create an Euler diagram input data
+venn_data <- c("Non-English" = length(langs),
+               "References" = length(refs),
+               "Citations" = length(cits),
+               "Non-English&References" = length(langs_refs),
+               "Non-English&Citations" = length(langs_cits),
+               "References&Citations" = length(refs_cits),
+               "Non-English&References&Citations" = length(langs_refs_cits))
+fit <- euler(venn_data)
 
-langs_refs <- paste0("langs_refs", 1:3058)   # Languages & References intersection
-langs_cits <- paste0("langs_cits", 1:2222)   # Languages & Citations intersection
-refs_cits <- paste0("refs_cits", 1:5834)   # References & Citations intersection
-langs_refs_cits <- paste0("langs_refs_cits", 1:1461) # All three intersections
-
-journals_subsets <- list("Non-English publishing" = c(langs, langs_refs, langs_cits, langs_refs_cits),
-                         "Referenced proportion" = c(refs, langs_refs, refs_cits, langs_refs_cits),
-                         "Citing proportion" = c(cits, langs_cits, refs_cits, langs_refs_cits))
-
-# plot the Venn diagram
-figure_1 <- ggVennDiagram(journals_subsets, label_alpha = 0, edge_size = 0.3, edge_color = "gray",
-              category.names = c("Non-English\nlanguages", "Global\nreferences", "Local citations")) +
-  scale_fill_gradient(low = "#F4FAFE" , high = "#4981BF") +
-  theme_minimal() +
-  theme(legend.position = "none") +
-  theme(axis.text = element_blank(), axis.ticks = element_blank(), axis.title = element_blank(), panel.grid = element_blank())
+# plot the diagram
+figure_1 <- plot(fit, 
+                 fills = c("#F4FAFE", "#BED7F2", "#4981BF"),
+                 labels = c("Non-English\nlanguages", "Global references", "Local citations"),
+                 edges = TRUE, quantities = TRUE)
 ggsave("~/Desktop/Local.Journals/figure_1.png", plot = figure_1, width = 6.5, height = 6, dpi = 300)
 
 
