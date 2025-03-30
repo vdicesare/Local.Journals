@@ -242,18 +242,20 @@ openalex_journals <- openalex_journals %>% left_join(citations_local_variable %>
                                                      by = c("journal_id"))
 
 
-# count the number of articles produced by each country, per journal and in total
+# count the number of articles produced by each country, per journal and in total, as well as the number of articles produced by each journal
 articles_per_country <- list.files(path = "~/Desktop/Local.Journals/articles_per_country", pattern = "local_journals_OA2503_articles_per_country_.*", full.names = TRUE)
 articles_per_country <- rbindlist(lapply(articles_per_country, fread, sep = ","), fill = TRUE)
 
-articles_per_country <- articles_per_country %>% group_by(journal_id, journal_name, country) %>%
-                                                 mutate(arts_count = n()) %>%
+articles_per_country <- articles_per_country %>% group_by(journal_id, journal_name) %>%
+                                                 mutate(arts_count_journal = n_distinct(article_id)) %>%
                                                  ungroup()
-articles_per_country <- within(articles_per_country, rm(article_id))
-articles_per_country <- articles_per_country %>% distinct()
 
 articles_per_country <- articles_per_country %>% group_by(country) %>%
-                                                 mutate(arts_total = sum(arts_count, na.rm = TRUE)) %>%
+                                                 mutate(arts_count_country = n_distinct(article_id)) %>%
+                                                 ungroup()
+
+articles_per_country <- articles_per_country %>% group_by(country, journal_id, journal_name) %>%
+                                                 mutate(arts_country_journal = n_distinct(article_id)) %>%
                                                  ungroup()
 
 
@@ -462,19 +464,19 @@ ggsave("~/Desktop/Local.Journals/figure_2.png", width = 10, height = 6, dpi = 30
 # combine with the knowledge bridging journals their articles count and total variables
 knowledge_bridging_journals_countries <- knowledge_bridging_journals %>% mutate(journal_id = as.character(journal_id)) %>%
                                                                          left_join(articles_per_country %>% mutate(journal_id = as.character(journal_id)), by = "journal_id") %>%
-                                                                         select(journal_id, country, arts_count, arts_total)
+                                                                         select(journal_id, country, arts_country_journal, arts_count_country)
 
 # summarise articles count, grand total (articles count per country within their 2023 production) and compute share per country
 knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% group_by(country) %>%
-                                                                                   summarise(arts_count = sum(arts_count, na.rm = TRUE),
-                                                                                             arts_total = first(arts_total, na.rm = TRUE),
-                                                                                             arts_share = arts_count / arts_total) %>%
+                                                                                   summarise(arts_country_journal = sum(arts_country_journal, na.rm = TRUE),
+                                                                                             arts_count_country = first(arts_count_country, na.rm = TRUE),
+                                                                                             arts_share = arts_country_journal / arts_count_country) %>%
                                                                                    ungroup() %>%
                                                                                    rename(region = country)
 
 # compute articles inner total (articles total count within the knowledge bridging journals) and share per country
-knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% mutate(inner_total = sum(arts_count, na.rm = TRUE),
-                                                                                   inner_share = arts_count / inner_total)
+knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% mutate(inner_total = sum(arts_country_journal, na.rm = TRUE),
+                                                                                   inner_share = arts_country_journal / inner_total)
 
 # incorporate each countries' coordinates from the world dataframe
 knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% full_join(world, by = c("region" = "region"))
