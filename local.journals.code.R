@@ -311,6 +311,12 @@ world <- world %>% mutate(across(region,
                                TRUE ~ .)))
 
 
+# isolate the knowledge bridging journals as well as the non-knowledge bridging journals
+knowledge_bridging_journals <- openalex_journals %>% filter(refs_prop < 0.42, cits_prop >= 0.86, mainstream_lang == 0)
+
+non_knowledge_bridging_journals <- anti_join(openalex_journals, knowledge_bridging_journals)
+
+
 ### Table 2. Descriptive measures of the variables at the journal level
 # compute descriptive measures with variables refs_prop, cits_prop and mainstream_lang per unique journal combination
 print(quantile(openalex_journals %>% distinct(journal_id, .keep_all = TRUE) %>% pull(refs_prop),
@@ -330,13 +336,19 @@ print(openalex_journals %>% filter(cits_prop >= 0.86) %>%
 
 
 ### Table 3. Comparison of average values across all journals and knowledge bridging journals variables
-# compute arts averages in all journals and in knowledge bridging journals
-print(articles_per_country %>% distinct(journal_id, .keep_all = TRUE) %>% 
-                               summarise(total_articles = sum(arts_count_journal, na.rm = TRUE))) # / 59230 journals = 57.1 articles per journal
-
+# compute arts averages in knowledge bridging journals, non-knowledge bridging journals and all journals
 print(articles_per_country %>% filter(journal_id %in% unique(knowledge_bridging_journals$journal_id)) %>%
                                distinct(journal_id, .keep_all = TRUE) %>% 
                                summarise(total_articles = sum(arts_count_journal, na.rm = TRUE))) # / 1271 knowledge bridging journals = 18.7 articles per journal
+
+print(articles_per_country %>% filter(journal_id %in% unique(knowledge_bridging_journals$journal_id)) %>%
+        distinct(journal_id, .keep_all = TRUE) %>% 
+        summarise(total_articles = sum(arts_count_journal, na.rm = TRUE))) # / 57950 non-knowledge bridging journals = ??
+
+print(articles_per_country %>% distinct(journal_id, .keep_all = TRUE) %>% 
+                               summarise(total_articles = sum(arts_count_journal, na.rm = TRUE))) # / 59230 journals = 57.1 articles per journal
+
+
 
 # compute publishing countries averages in all journals and in knowledge bridging journals
 print(articles_per_country %>% filter(!is.na(country)) %>%
