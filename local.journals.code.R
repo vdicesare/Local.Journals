@@ -242,23 +242,6 @@ openalex_journals <- openalex_journals %>% left_join(citations_local_variable %>
                                                      by = c("journal_id"))
 
 
-# count the number of articles produced by each country, per journal and in total, as well as the number of articles produced by each journal
-articles_per_country <- list.files(path = "~/Desktop/Local.Journals/articles_per_country", pattern = "local_journals_OA2503_articles_per_country_.*", full.names = TRUE)
-articles_per_country <- rbindlist(lapply(articles_per_country, fread, sep = ","), fill = TRUE)
-
-articles_per_country <- articles_per_country %>% group_by(journal_id, journal_name) %>%
-                                                 mutate(arts_count_journal = n_distinct(article_id)) %>%
-                                                 ungroup()
-
-articles_per_country <- articles_per_country %>% group_by(country) %>%
-                                                 mutate(arts_count_country = n_distinct(article_id)) %>%
-                                                 ungroup()
-
-articles_per_country <- articles_per_country %>% group_by(country, journal_id, journal_name) %>%
-                                                 mutate(arts_country_journal = n_distinct(article_id)) %>%
-                                                 ungroup()
-
-
 # clean country names
 unique_countries <- openalex_journals %>% select(refs_country, cits_country, langs_country) %>%
                                           pivot_longer(everything()) %>%
@@ -281,34 +264,55 @@ openalex_journals <- openalex_journals %>% mutate(across(c(refs_country, cits_co
                                                        . == "Vatican City" ~ "Vatican",
                                                        TRUE ~ .)))
 
-articles_per_country <- articles_per_country %>% mutate(across(country, 
-                                                              ~ case_when(. == "Türkiye" ~ "Turkey",
-                                                                          . == "Réunion" ~ "Reunion",
-                                                                          . == "Czechia" ~ "Czech Republic",
-                                                                          . == "The Netherlands" ~ "Netherlands",
-                                                                          . == "Hong Kong" ~ "China",
-                                                                          . == "The Gambia" ~ "Gambia",
-                                                                          . == "DR Congo" ~ "Democratic Republic of the Congo",
-                                                                          . == "Congo Republic" ~ "Republic of Congo",
-                                                                          . == "Macao" ~ "China",
-                                                                          . == "Curaçao" ~ "Curacao",
-                                                                          . == "Eswatini" ~ "Swaziland",
-                                                                          . == "U.S. Virgin Islands" ~ "Virgin Islands",
-                                                                          . == "Vatican City" ~ "Vatican",
-                                                                          TRUE ~ .)))
-
 # import world coordinates and tweak a few country names
 world <- map_data("world")
 world <- world %>% mutate(across(region, 
-                   ~ case_when(. == "USA" ~ "United States",
-                               . == "UK" ~ "United Kingdom",
-                               . == "Trinidad" ~ "Trinidad and Tobago",
-                               . == "Tobago" ~ "Trinidad and Tobago",
-                               . == "Saint Kitts" ~ "St Kitts and Nevis",
-                               . == "Nevis" ~ "St Kitts and Nevis",
-                               . == "Antigua" ~ "Antigua and Barbuda",
-                               . == "Barbuda" ~ "Antigua and Barbuda",
-                               TRUE ~ .)))
+                                 ~ case_when(. == "USA" ~ "United States",
+                                             . == "UK" ~ "United Kingdom",
+                                             . == "Trinidad" ~ "Trinidad and Tobago",
+                                             . == "Tobago" ~ "Trinidad and Tobago",
+                                             . == "Saint Kitts" ~ "St Kitts and Nevis",
+                                             . == "Nevis" ~ "St Kitts and Nevis",
+                                             . == "Antigua" ~ "Antigua and Barbuda",
+                                             . == "Barbuda" ~ "Antigua and Barbuda",
+                                             TRUE ~ .)))
+
+
+# count the number of articles produced by each country, per journal and in total, as well as the number of articles produced by each journal
+articles_per_country <- list.files(path = "~/Desktop/Local.Journals/articles_per_country", pattern = "local_journals_OA2503_articles_per_country_.*", full.names = TRUE)
+articles_per_country <- rbindlist(lapply(articles_per_country, fread, sep = ","), fill = TRUE)
+
+articles_per_country <- articles_per_country %>% mutate(across(country, 
+                                                               ~ case_when(. == "Türkiye" ~ "Turkey",
+                                                                           . == "Réunion" ~ "Reunion",
+                                                                           . == "Czechia" ~ "Czech Republic",
+                                                                           . == "The Netherlands" ~ "Netherlands",
+                                                                           . == "Hong Kong" ~ "China",
+                                                                           . == "The Gambia" ~ "Gambia",
+                                                                           . == "DR Congo" ~ "Democratic Republic of the Congo",
+                                                                           . == "Congo Republic" ~ "Republic of Congo",
+                                                                           . == "Macao" ~ "China",
+                                                                           . == "Curaçao" ~ "Curacao",
+                                                                           . == "Eswatini" ~ "Swaziland",
+                                                                           . == "U.S. Virgin Islands" ~ "Virgin Islands",
+                                                                           . == "Vatican City" ~ "Vatican",
+                                                                           TRUE ~ .)))
+
+articles_per_country <- articles_per_country %>% group_by(journal_id, journal_name) %>%
+                                                 mutate(arts_count_journal = n_distinct(article_id)) %>%
+                                                 ungroup()
+
+articles_per_country <- articles_per_country %>% group_by(country) %>%
+                                                 mutate(arts_count_country = n_distinct(article_id)) %>%
+                                                 ungroup()
+
+articles_per_country <- articles_per_country %>% group_by(country, journal_id, journal_name) %>%
+                                                 mutate(arts_country_journal = n_distinct(article_id)) %>%
+                                                 ungroup()
+
+# clean the dataframe by removing article_id variable and dropping duplicated rows
+articles_per_country <- articles_per_country %>% select(-article_id) %>%
+                                                 distinct()
 
 
 # isolate the knowledge bridging journals as well as the non-knowledge bridging journals
@@ -339,14 +343,14 @@ print(openalex_journals %>% filter(cits_prop >= 0.86) %>%
 # compute arts averages in knowledge bridging journals, non-knowledge bridging journals and all journals
 print(articles_per_country %>% filter(journal_id %in% unique(knowledge_bridging_journals$journal_id)) %>%
                                distinct(journal_id, .keep_all = TRUE) %>% 
-                               summarise(total_articles = sum(arts_count_journal, na.rm = TRUE))) # / 1271 knowledge bridging journals = 18.7 articles per journal
+                               summarise(total_articles = sum(arts_count_journal, na.rm = TRUE))) # 23776 / 1271 knowledge bridging journals = 18.7 articles per journal
 
 print(articles_per_country %>% filter(journal_id %in% unique(non_knowledge_bridging_journals$journal_id)) %>%
                                distinct(journal_id, .keep_all = TRUE) %>% 
-                               summarise(total_articles = sum(arts_count_journal, na.rm = TRUE))) # / 57950 non-knowledge bridging journals = 57.9 articles per journal
+                               summarise(total_articles = sum(arts_count_journal, na.rm = TRUE))) # 3356389 / 57950 non-knowledge bridging journals = 57.9 articles per journal
 
 print(articles_per_country %>% distinct(journal_id, .keep_all = TRUE) %>% 
-                               summarise(total_articles = sum(arts_count_journal, na.rm = TRUE))) # / 59230 journals = 57.1 articles per journal
+                               summarise(total_articles = sum(arts_count_journal, na.rm = TRUE))) # 3380165 / 59230 journals = 57.1 articles per journal
 
 # compute publishing countries averages in knowledge bridging journals, non-knowledge bridging journals and all journals
 print(articles_per_country %>% filter(journal_id %in% unique(knowledge_bridging_journals$journal_id)) %>%
@@ -354,44 +358,51 @@ print(articles_per_country %>% filter(journal_id %in% unique(knowledge_bridging_
                                group_by(journal_id) %>%
                                distinct(country) %>%
                                ungroup() %>%
-                               summarise(total_countries = n())) # / 1271 knowledge bridging journals = 3.1 publishing countries per journal
+                               summarise(total_countries = n())) # 3940 / 1271 knowledge bridging journals = 3.1 publishing countries per journal
 
 print(articles_per_country %>% filter(journal_id %in% unique(non_knowledge_bridging_journals$journal_id)) %>%
                                filter(!is.na(country)) %>%
                                group_by(journal_id) %>%
                                distinct(country) %>%
                                ungroup() %>%
-                               summarise(total_countries = n())) # / 57950 non-knowledge bridging journals = 10.3 publishing countries per journal
+                               summarise(total_countries = n())) # 595849 / 57950 non-knowledge bridging journals = 10.3 publishing countries per journal
 
 print(articles_per_country %>% filter(!is.na(country)) %>%
                                group_by(journal_id) %>%
                                distinct(country) %>%
                                ungroup() %>%
-                               summarise(total_countries = n())) # / 59230 journals = 10.1 publishing countries per journal
+                               summarise(total_countries = n())) # 599789 / 59230 journals = 10.1 publishing countries per journal
 
-# identify the top 3 publishing countries in knowledge bridging journals, non-knowledge bridging journals and all journals
+# identify the top 3 publishing countries in knowledge bridging journals, non-knowledge bridging journals (controlling by country size) and in all journals
 print(articles_per_country %>% filter(journal_id %in% unique(knowledge_bridging_journals$journal_id)) %>%
                                filter(!is.na(country)) %>%
-                               distinct(journal_id, country) %>%
                                group_by(country) %>%
-                               summarise(country_count = n()) %>%
-                               ungroup() %>%
-                               arrange(desc(country_count)))
+                               reframe(total_articles = sum(arts_country_journal, na.rm = TRUE),
+                                       total_country_size = unique(arts_count_country)) %>%
+                               mutate(normalized_articles = total_articles / total_country_size) %>%
+                               arrange(desc(normalized_articles)))
 
 print(articles_per_country %>% filter(journal_id %in% unique(non_knowledge_bridging_journals$journal_id)) %>%
                                filter(!is.na(country)) %>%
-                               distinct(journal_id, country) %>%
                                group_by(country) %>%
-                               summarise(country_count = n()) %>%
-                               ungroup() %>%
-                               arrange(desc(country_count)))
+                               reframe(total_articles = sum(arts_country_journal, na.rm = TRUE),
+                                       total_country_size = unique(arts_count_country)) %>%
+                               mutate(normalized_articles = total_articles / total_country_size) %>%
+                               arrange(desc(normalized_articles)))
 
 print(articles_per_country %>% filter(!is.na(country)) %>%
-                               distinct(journal_id, country) %>%
                                group_by(country) %>%
-                               summarise(country_count = n()) %>%
-                               ungroup() %>%
-                               arrange(desc(country_count)))
+                               reframe(total_articles = sum(arts_country_journal, na.rm = TRUE)) %>%
+                               arrange(desc(total_articles)))
+
+# run to see all results as a dataframe
+#trial <- articles_per_country %>% filter(journal_id %in% unique(knowledge_bridging_journals$journal_id)) %>%
+                                  #filter(!is.na(country)) %>%
+                                  #group_by(country) %>%
+                                  #reframe(total_articles = sum(arts_country_journal, na.rm = TRUE),
+                                          #total_country_size = unique(arts_count_country)) %>%
+                                  #mutate(normalized_articles = total_articles / total_country_size) %>%
+                                  #arrange(desc(normalized_articles))
 
 # compute cits and refs averages in knowledge bridging journals, non-knowledge bridging journals and all journals
 print(knowledge_bridging_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
@@ -559,15 +570,15 @@ ggsave("~/Desktop/Local.Journals/figure_2.png", width = 10, height = 6, dpi = 30
 # combine with the knowledge bridging journals their articles count and total variables
 knowledge_bridging_journals_countries <- knowledge_bridging_journals %>% mutate(journal_id = as.character(journal_id)) %>%
                                                                          left_join(articles_per_country %>% mutate(journal_id = as.character(journal_id)), by = "journal_id") %>%
-                                                                         select(journal_id, country, arts_country_journal, arts_count_country)
+                                                                         select(journal_id, region = country, arts_country_journal, arts_count_country) %>%
+                                                                         distinct()
 
 # summarise articles count, grand total (articles count per country within their 2023 production) and compute share per country
-knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% group_by(country) %>%
+knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% group_by(region) %>%
                                                                                    summarise(arts_country_journal = sum(arts_country_journal, na.rm = TRUE),
                                                                                              arts_count_country = first(arts_count_country, na.rm = TRUE),
                                                                                              arts_share = arts_country_journal / arts_count_country) %>%
-                                                                                   ungroup() %>%
-                                                                                   rename(region = country)
+                                                                                   ungroup()
 
 # compute articles inner total (articles total count within the knowledge bridging journals) and share per country
 knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% mutate(inner_total = sum(arts_country_journal, na.rm = TRUE),
