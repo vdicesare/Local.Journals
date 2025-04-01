@@ -530,7 +530,8 @@ fit <- euler(venn_data)
 figure_1 <- plot(fit, 
                  fills = c("#F4FAFE", "#BED7F2", "#4981BF"),
                  labels = c("Non-English\nlanguages", "Global references", "Local citations"),
-                 edges = TRUE, quantities = TRUE)
+                 edges = TRUE, 
+                 quantities = list(font = ifelse(venn_data == length(langs_refs_cits), 2, 1)))
 ggsave("~/Desktop/Local.Journals/figure_1.png", plot = figure_1, width = 6.5, height = 6, dpi = 300)
 
 
@@ -588,16 +589,16 @@ knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %
 knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% full_join(world, by = c("region" = "region"))
 
 # reshape share data from wide to long to facilitate faceting within the plot
-knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% pivot_longer(cols = c(arts_share, inner_share), 
-                                                                                   names_to = "share_type", 
-                                                                                   values_to = "share_value")
+knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% pivot_longer(cols = c(inner_share, arts_share), 
+                                                                                   names_to = "share_type", values_to = "share_value") %>%
+                                                                                   mutate(share_type = factor(share_type, levels = c("inner_share", "arts_share")))
 
 # plot faceted maps
 ggplot(knowledge_bridging_journals_countries) +
   geom_map(aes(map_id = region, fill = share_value), map = world) +
   facet_wrap(~ share_type, scales = "free", , ncol = 1,
-             labeller = labeller(share_type = c("arts_share" = "(A)", 
-                                                "inner_share" = "(B)"))) +
+             labeller = labeller(share_type = c("inner_share" = "(A)", 
+                                                "arts_share" = "(B)"))) +
   expand_limits(x = world$long, y = world$lat) +
   scale_fill_continuous(low = "#FFE5B4", high = "#D35400", na.value = "grey",
                         labels = label_number(accuracy = 0.01)) +
