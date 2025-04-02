@@ -301,13 +301,6 @@ articles_per_country <- articles_per_country %>% select(-article_id) %>%
                                                  distinct()
 
 
-# isolate the knowledge bridging journals as well as the non-knowledge bridging journals
-knowledge_bridging_journals <- openalex_journals %>% filter(refs_prop < 0.42, cits_prop >= 0.86, mainstream_lang == 0)
-
-non_knowledge_bridging_journals <- anti_join(openalex_journals, knowledge_bridging_journals)
-
-
-### Table 2. Descriptive measures of the variables at the journal level
 # compute descriptive measures with variables refs_prop, cits_prop and mainstream_lang per unique journal combination
 print(quantile(openalex_journals %>% distinct(journal_id, .keep_all = TRUE) %>% pull(refs_prop),
                                                                                 probs = 0.75, na.rm = TRUE))
@@ -325,94 +318,8 @@ print(openalex_journals %>% filter(cits_prop >= 0.86) %>%
                             summarise(total_unique_journals = n_distinct(journal_id)))
 
 
-### Table 3. Comparison of average values across knowledge bridging journals, non-knowledge bridging journals and all journals variables
-# compute arts averages in knowledge bridging journals, non-knowledge bridging journals and all journals
-print(articles_per_country %>% filter(journal_id %in% unique(knowledge_bridging_journals$journal_id)) %>%
-                               distinct(journal_id, .keep_all = TRUE) %>% 
-                               summarise(total_articles = sum(arts_count_journal, na.rm = TRUE))) # 23776 / 1271 knowledge bridging journals = 18.7 articles per journal
-
-print(articles_per_country %>% filter(journal_id %in% unique(non_knowledge_bridging_journals$journal_id)) %>%
-                               distinct(journal_id, .keep_all = TRUE) %>% 
-                               summarise(total_articles = sum(arts_count_journal, na.rm = TRUE))) # 3356389 / 57950 non-knowledge bridging journals = 57.9 articles per journal
-
-print(articles_per_country %>% distinct(journal_id, .keep_all = TRUE) %>% 
-                               summarise(total_articles = sum(arts_count_journal, na.rm = TRUE))) # 3380165 / 59230 journals = 57.1 articles per journal
-
-# identify the top 3 publishing countries in knowledge bridging journals, non-knowledge bridging journals (controlling by country size) and in all journals
-print(articles_per_country %>% filter(journal_id %in% unique(knowledge_bridging_journals$journal_id)) %>%
-                               filter(!is.na(country)) %>%
-                               group_by(country) %>%
-                               reframe(total_articles = sum(arts_country_journal, na.rm = TRUE),
-                                       total_country_size = unique(arts_count_country)) %>%
-                               mutate(normalized_articles = total_articles / total_country_size) %>%
-                               arrange(desc(normalized_articles)))
-
-print(articles_per_country %>% filter(journal_id %in% unique(non_knowledge_bridging_journals$journal_id)) %>%
-                               filter(!is.na(country)) %>%
-                               group_by(country) %>%
-                               reframe(total_articles = sum(arts_country_journal, na.rm = TRUE),
-                                       total_country_size = unique(arts_count_country)) %>%
-                               mutate(normalized_articles = total_articles / total_country_size) %>%
-                               arrange(desc(normalized_articles)))
-
-print(articles_per_country %>% filter(!is.na(country)) %>%
-                               group_by(country) %>%
-                               reframe(total_articles = sum(arts_country_journal, na.rm = TRUE)) %>%
-                               arrange(desc(total_articles)))
-
-# run to see all results as a dataframe
-#trial <- articles_per_country %>% filter(journal_id %in% unique(knowledge_bridging_journals$journal_id)) %>%
-                                  #filter(!is.na(country)) %>%
-                                  #group_by(country) %>%
-                                  #reframe(total_articles = sum(arts_country_journal, na.rm = TRUE),
-                                          #total_country_size = unique(arts_count_country)) %>%
-                                  #mutate(normalized_articles = total_articles / total_country_size) %>%
-                                  #arrange(desc(normalized_articles))
-
-
-
-# identify the top 3 citing and referenced countries in knowledge bridging journals, non-knowledge bridging journals and all journals
-print(knowledge_bridging_journals %>% filter(!is.na(cits_country)) %>%
-                                      distinct(journal_id, cits_country) %>%
-                                      group_by(cits_country) %>%
-                                      summarise(country_count = n()) %>%
-                                      ungroup() %>%
-                                      arrange(desc(country_count)))
-
-print(non_knowledge_bridging_journals %>% filter(!is.na(cits_country)) %>%
-                                          distinct(journal_id, cits_country) %>%
-                                          group_by(cits_country) %>%
-                                          summarise(country_count = n()) %>%
-                                          ungroup() %>%
-                                          arrange(desc(country_count)))
-
-print(openalex_journals %>% filter(!is.na(cits_country)) %>%
-                            distinct(journal_id, cits_country) %>%
-                            group_by(cits_country) %>%
-                            summarise(country_count = n()) %>%
-                            ungroup() %>%
-                            arrange(desc(country_count)))
-
-print(knowledge_bridging_journals %>% filter(!is.na(refs_country)) %>%
-                                      distinct(journal_id, refs_country) %>%
-                                      group_by(refs_country) %>%
-                                      summarise(country_count = n()) %>%
-                                      ungroup() %>%
-                                      arrange(desc(country_count)))
-
-print(non_knowledge_bridging_journals %>% filter(!is.na(refs_country)) %>%
-                                          distinct(journal_id, refs_country) %>%
-                                          group_by(refs_country) %>%
-                                          summarise(country_count = n()) %>%
-                                          ungroup() %>%
-                                          arrange(desc(country_count)))
-
-print(openalex_journals %>% filter(!is.na(refs_country)) %>%
-                            distinct(journal_id, refs_country) %>%
-                            group_by(refs_country) %>%
-                            summarise(country_count = n()) %>%
-                            ungroup() %>%
-                            arrange(desc(country_count)))
+# isolate the knowledge bridging journals
+knowledge_bridging_journals <- openalex_journals %>% filter(refs_prop < 0.42, cits_prop >= 0.86, mainstream_lang == 0)
 
 
 ### Figure 1A: Intersections of conditions that allow for the identification of knowledge bridging journals (n = 1,461) within a larger OpenAlex dataset (N = 59,230)
@@ -525,7 +432,34 @@ figure_1C <- ggplot(figure_1C, aes(x = Subset, y = Avg_Cits, fill = Subset)) +
 ggsave("~/Desktop/Local.Journals/figure_1C.png", width = 14, height = 10, dpi = 300)
 
 
-### Figure 2: Countries publication share in knowledge bridging journals with respect to (A) each country's publication total for 2023, and (B) the knowledge bridging journals' publication total for 2023
+### Figure 2: Countries publication number and share in knowledge bridging journals controlled by country size
+# SEGUIR POR ACÁ, ESTE CÓDIGO PUEDE SERVIR PARA CALCULAR LOS Nº PUBS Y % PUBS POR PAÍS identify the top 3 publishing countries in knowledge bridging journals, non-knowledge bridging journals (controlling by country size) and in all journals
+print(articles_per_country %>% filter(journal_id %in% unique(knowledge_bridging_journals$journal_id)) %>%
+        filter(!is.na(country)) %>%
+        group_by(country) %>%
+        reframe(total_articles = sum(arts_country_journal, na.rm = TRUE),
+                total_country_size = unique(arts_count_country)) %>%
+        mutate(normalized_articles = total_articles / total_country_size) %>%
+        arrange(desc(normalized_articles)))
+
+print(articles_per_country %>% filter(journal_id %in% unique(non_knowledge_bridging_journals$journal_id)) %>%
+        filter(!is.na(country)) %>%
+        group_by(country) %>%
+        reframe(total_articles = sum(arts_country_journal, na.rm = TRUE),
+                total_country_size = unique(arts_count_country)) %>%
+        mutate(normalized_articles = total_articles / total_country_size) %>%
+        arrange(desc(normalized_articles)))
+
+print(articles_per_country %>% filter(!is.na(country)) %>%
+        group_by(country) %>%
+        reframe(total_articles = sum(arts_country_journal, na.rm = TRUE)) %>%
+        arrange(desc(total_articles)))
+
+
+
+
+
+
 # combine with the knowledge bridging journals their articles count and total variables
 knowledge_bridging_journals_countries <- knowledge_bridging_journals %>% mutate(journal_id = as.character(journal_id)) %>%
   left_join(articles_per_country %>% mutate(journal_id = as.character(journal_id)), by = "journal_id") %>%
