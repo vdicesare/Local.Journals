@@ -8,6 +8,7 @@ library(stringr)
 library(bit64)
 library(ggplot2)
 library(eulerr)
+library(countrycode)
 options(scipen = 999)
 
 
@@ -432,76 +433,81 @@ figure_1C <- ggplot(figure_1C, aes(x = Subset, y = Avg_Cits, fill = Subset)) +
 ggsave("~/Desktop/Local.Journals/figure_1C.png", width = 14, height = 10, dpi = 300)
 
 
-### Figure 2: Countries publication number and share in knowledge bridging journals controlled by country size
-# SEGUIR POR ACÁ, ESTE CÓDIGO PUEDE SERVIR PARA CALCULAR LOS Nº PUBS Y % PUBS POR PAÍS identify the top 3 publishing countries in knowledge bridging journals, non-knowledge bridging journals (controlling by country size) and in all journals
-print(articles_per_country %>% filter(journal_id %in% unique(knowledge_bridging_journals$journal_id)) %>%
-        filter(!is.na(country)) %>%
-        group_by(country) %>%
-        reframe(total_articles = sum(arts_country_journal, na.rm = TRUE),
-                total_country_size = unique(arts_count_country)) %>%
-        mutate(normalized_articles = total_articles / total_country_size) %>%
-        arrange(desc(normalized_articles)))
-
-print(articles_per_country %>% filter(journal_id %in% unique(non_knowledge_bridging_journals$journal_id)) %>%
-        filter(!is.na(country)) %>%
-        group_by(country) %>%
-        reframe(total_articles = sum(arts_country_journal, na.rm = TRUE),
-                total_country_size = unique(arts_count_country)) %>%
-        mutate(normalized_articles = total_articles / total_country_size) %>%
-        arrange(desc(normalized_articles)))
-
-print(articles_per_country %>% filter(!is.na(country)) %>%
-        group_by(country) %>%
-        reframe(total_articles = sum(arts_country_journal, na.rm = TRUE)) %>%
-        arrange(desc(total_articles)))
-
-
-
-
-
+### Figure 2A: Countries publication number and share in knowledge bridging journals controlled by country size
+# SEGUIR POR ACÁ, ESTE CÓDIGO PUEDE SERVIR PARA CALCULAR LOS Nº PUBS Y % PUBS POR PAÍS
 
 # combine with the knowledge bridging journals their articles count and total variables
 knowledge_bridging_journals_countries <- knowledge_bridging_journals %>% mutate(journal_id = as.character(journal_id)) %>%
-  left_join(articles_per_country %>% mutate(journal_id = as.character(journal_id)), by = "journal_id") %>%
-  select(journal_id, region = country, arts_country_journal, arts_count_country) %>%
-  distinct()
+                                                                         left_join(articles_per_country %>%
+                                                                         mutate(journal_id = as.character(journal_id)), by = "journal_id") %>%
+                                                                         select(journal_id, country, arts_country_journal, arts_count_country) %>%
+                                                                         distinct()
 
-# summarise articles count, grand total (articles count per country within their 2023 production) and compute share per country
-knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% group_by(region) %>%
-  summarise(arts_country_journal = sum(arts_country_journal, na.rm = TRUE),
-            arts_count_country = first(arts_count_country, na.rm = TRUE),
-            arts_share = arts_country_journal / arts_count_country) %>%
-  ungroup()
+# summarise articles count, total count (within 2023 production) and share per country
+knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% group_by(country) %>%
+                                                                                   summarise(arts_country_journal = sum(arts_country_journal, na.rm = TRUE),
+                                                                                   arts_count_country = first(arts_count_country, na.rm = TRUE),
+                                                                                   arts_share = arts_country_journal / arts_count_country) %>%
+                                                                                   ungroup()
 
-# compute articles inner total (articles total count within the knowledge bridging journals) and share per country
-knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% mutate(inner_total = sum(arts_country_journal, na.rm = TRUE),
-                                                                                          inner_share = arts_country_journal / inner_total)
+# add continent variable to group countries when plotting
+knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% mutate(continent = countrycode(country, origin = "country.name", destination = "continent"),
+                                                                                   region = case_when(country %in% c("United States", "Canada", "Mexico") ~ "North America",
+                                                                                                      country %in% c("Belize", "Costa Rica", "El Salvador", "Guatemala", "Honduras",
+                                                                                                                     "Nicaragua", "Panama", "Cuba", "Haiti", "Dominican Republic",
+                                                                                                                     "Jamaica", "Trinidad and Tobago", "Bahamas", "Barbados") ~ "Central America & the Caribbean",
+                                                                                                      country %in% c("Argentina", "Bolivia", "Brazil", "Chile", "Colombia",
+                                                                                                                     "Ecuador", "Guyana", "Paraguay", "Peru", "Suriname",
+                                                                                                                     "Uruguay", "Venezuela") ~ "South America",
+                                                                                                      TRUE ~ continent))
 
-# incorporate each countries' coordinates from the world dataframe
-knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% full_join(world, by = c("region" = "region"))
-
-# reshape share data from wide to long to facilitate faceting within the plot
-knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% pivot_longer(cols = c(inner_share, arts_share), 
-                                                                                                names_to = "share_type", values_to = "share_value") %>%
-  mutate(share_type = factor(share_type, levels = c("inner_share", "arts_share")))
-
-# plot faceted maps
-ggplot(knowledge_bridging_journals_countries) +
-  geom_map(aes(map_id = region, fill = share_value), map = world) +
-  facet_wrap(~ share_type, scales = "free", , ncol = 1,
-             labeller = labeller(share_type = c("inner_share" = "(A)", 
-                                                "arts_share" = "(B)"))) +
-  expand_limits(x = world$long, y = world$lat) +
-  scale_fill_continuous(low = "#FFE5B4", high = "#D35400", na.value = "grey",
-                        labels = label_number(accuracy = 0.01)) +
+# plot figure 2A
+ggplot(knowledge_bridging_journals_countries %>%
+         filter(!is.na(region)) %>%
+         arrange(desc(arts_country_journal)) %>%
+         slice_head(n = 25),  
+       aes(x = reorder(country, arts_country_journal), y = arts_country_journal, fill = factor(region, 
+       levels = c("Asia", "Europe", "North America", "Central America & the Caribbean", "South America")))) +
+  geom_col() +
+  coord_flip() +  
+  labs(x = "Country",
+       y = "Publications total",
+       fill = "Region") +
+  scale_fill_manual(values = c("North America" = "#7BA9D9", "Central America & the Caribbean" = "#F39C12",
+                               "South America" = "#F1C40F", "Europe" = "#4981BF", "Asia" = "#D35400")) +
   theme_minimal() +
-  labs(fill = "Publication share") +
-  theme(axis.title = element_blank(),
-        axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        legend.position = "bottom",
-        legend.key.width = unit(1, "cm"))
-ggsave("~/Desktop/Local.Journals/figure_2.png", width = 10, height = 12, dpi = 300)
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_text(size = 16),
+        axis.title.x = element_text(size = 18, face = "bold"),
+        axis.title.y = element_text(size = 18, face = "bold"),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 16, face = "bold"))
+ggsave("~/Desktop/Local.Journals/figure_2A.png", width = 14, height = 18, dpi = 300)
+
+# plot figure 2B
+ggplot(knowledge_bridging_journals_countries %>%
+         filter(!is.na(region)) %>%
+         arrange(desc(arts_share)) %>%
+         slice_head(n = 25),  
+       aes(x = reorder(country, arts_share), y = arts_share, fill = factor(region, 
+                                                                           levels = c("Africa", "Asia", "Europe", "North America", "Central America & the Caribbean", "South America")))) +
+  geom_col() +
+  coord_flip() +  
+  labs(x = "Country",
+       y = "Publications share",
+       fill = "Region") +
+  scale_fill_manual(values = c("North America" = "#7BA9D9", "Central America & the Caribbean" = "#F39C12",
+                               "South America" = "#F1C40F", "Europe" = "#4981BF", "Asia" = "#D35400", "Africa" = "#1F3A64")) + 
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_text(size = 16),
+        axis.title.x = element_text(size = 18, face = "bold"),
+        axis.title.y = element_text(size = 18, face = "bold"),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 16, face = "bold"))
+ggsave("~/Desktop/Local.Journals/figure_2B.png", width = 16, height = 18, dpi = 300)
 
 
 ### Figure 3: Distribution of knowledge bridging journals by OpenAlex field and domain categories
@@ -531,6 +537,6 @@ ggplot(na.omit(knowledge_bridging_journals_fields), aes(x = field, y = jours_sha
                               "Decision Sciences", "Arts and Humanities", "Economics, Econometrics and Finance", "Business, Management and Accounting", "Psychology", "Social Sciences")) +
   scale_fill_manual(values = c("Health Sciences" = "#D35400", "Life Sciences" = "#7BA9D9", "Physical Sciences" = "#F1C40F", "Social Sciences" = "#4981BF")) +
   theme_minimal() +
-  labs(x = "Field", y = "Journal share", fill = "Domain") +
+  labs(x = "Field", y = "Journals share", fill = "Domain") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ggsave("~/Desktop/Local.Journals/figure_3.png", width = 10, height = 6, dpi = 300)
