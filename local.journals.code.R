@@ -266,6 +266,7 @@ openalex_journals <- openalex_journals %>% mutate(across(c(refs_country, cits_co
 # count the number of articles produced by each country, per journal and in total, as well as the number of articles produced by each journal
 articles_per_country <- list.files(path = "~/Desktop/Local.Journals/articles_per_country", pattern = "local_journals_OA2503_articles_per_country_.*", full.names = TRUE)
 articles_per_country <- rbindlist(lapply(articles_per_country, fread, sep = ","), fill = TRUE)
+articles_per_country <- articles_per_country %>% mutate(journal_id = as.numeric(journal_id))
 
 articles_per_country <- articles_per_country %>% mutate(across(country, 
                                                                ~ case_when(. == "Türkiye" ~ "Turkey",
@@ -337,27 +338,6 @@ print(articles_per_country %>% filter(journal_id %in% unique(non_knowledge_bridg
 print(articles_per_country %>% distinct(journal_id, .keep_all = TRUE) %>% 
                                summarise(total_articles = sum(arts_count_journal, na.rm = TRUE))) # 3380165 / 59230 journals = 57.1 articles per journal
 
-# compute publishing countries averages in knowledge bridging journals, non-knowledge bridging journals and all journals
-print(articles_per_country %>% filter(journal_id %in% unique(knowledge_bridging_journals$journal_id)) %>%
-                               filter(!is.na(country)) %>%
-                               group_by(journal_id) %>%
-                               distinct(country) %>%
-                               ungroup() %>%
-                               summarise(total_countries = n())) # 3940 / 1271 knowledge bridging journals = 3.1 publishing countries per journal
-
-print(articles_per_country %>% filter(journal_id %in% unique(non_knowledge_bridging_journals$journal_id)) %>%
-                               filter(!is.na(country)) %>%
-                               group_by(journal_id) %>%
-                               distinct(country) %>%
-                               ungroup() %>%
-                               summarise(total_countries = n())) # 595849 / 57950 non-knowledge bridging journals = 10.3 publishing countries per journal
-
-print(articles_per_country %>% filter(!is.na(country)) %>%
-                               group_by(journal_id) %>%
-                               distinct(country) %>%
-                               ungroup() %>%
-                               summarise(total_countries = n())) # 599789 / 59230 journals = 10.1 publishing countries per journal
-
 # identify the top 3 publishing countries in knowledge bridging journals, non-knowledge bridging journals (controlling by country size) and in all journals
 print(articles_per_country %>% filter(journal_id %in% unique(knowledge_bridging_journals$journal_id)) %>%
                                filter(!is.na(country)) %>%
@@ -389,24 +369,7 @@ print(articles_per_country %>% filter(!is.na(country)) %>%
                                   #mutate(normalized_articles = total_articles / total_country_size) %>%
                                   #arrange(desc(normalized_articles))
 
-# compute cits and refs averages in knowledge bridging journals, non-knowledge bridging journals and all journals
-print(knowledge_bridging_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
-                                      summarise(total_cits_total = sum(cits_total, na.rm = TRUE))) # / 1271 knowledge bridging journals = 8.2 citations per journal
 
-print(non_knowledge_bridging_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
-                                          summarise(total_cits_total = sum(cits_total, na.rm = TRUE))) # / 57950 non-knowledge bridging journals = 282.4 citations per journal
-
-print(openalex_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
-                            summarise(total_cits_total = sum(cits_total, na.rm = TRUE))) # / 59230 journals = 276.4 citations per journal
-
-print(knowledge_bridging_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
-                                      summarise(total_refs_total = sum(refs_total, na.rm = TRUE))) # / 1271 knowledge bridging journals = 359.2 references per journal
-
-print(non_knowledge_bridging_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
-                                          summarise(total_refs_total = sum(refs_total, na.rm = TRUE))) # / 57950 non-knowledge bridging journals = 2769.7 references per journal
-
-print(openalex_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
-                            summarise(total_refs_total = sum(refs_total, na.rm = TRUE))) # / 59230 journals = 2717.5 references per journal
 
 # identify the top 3 citing and referenced countries in knowledge bridging journals, non-knowledge bridging journals and all journals
 print(knowledge_bridging_journals %>% filter(!is.na(cits_country)) %>%
@@ -482,8 +445,48 @@ figure_1A <- plot(fit,
                  quantities = list(font = ifelse(venn_data == length(langs_refs_cits), 2, 1)))
 ggsave("~/Desktop/Local.Journals/figure_1A.png", plot = figure_1A, width = 6.5, height = 6, dpi = 300)
 
-### Figure 1B: pubs avr
+### Figure 1B: Publications average of knowledge bridging journals and other related subsets
+# compute average publications for knowledge bridging journals, global refs + local cits journals, global refs + non-English lang journals, and local cits + non-English lang journals
+knowledge_bridging_pubs_avg <- articles_per_country %>% filter(journal_id %in% knowledge_bridging_journals$journal_id) %>%
+                                                        distinct(journal_id, .keep_all = TRUE) %>%
+                                                        summarize(avg_pubs = mean(arts_count_journal, na.rm = TRUE))
 
+refs_cits_pubs_avg <- openalex_journals %>% filter(refs_prop < 0.42, cits_prop >= 0.86) %>%
+                                            pull(journal_id)
+refs_cits_pubs_avg <- articles_per_country %>% filter(journal_id %in% refs_cits_pubs_avg) %>%
+                                               distinct(journal_id, .keep_all = TRUE) %>%
+                                               summarize(avg_pubs = mean(arts_count_journal, na.rm = TRUE))
+
+refs_lang_pubs_avg <- openalex_journals %>% filter(refs_prop < 0.42, mainstream_lang == 0) %>%
+                                            pull(journal_id)
+refs_lang_pubs_avg <- articles_per_country %>% filter(journal_id %in% refs_lang_pubs_avg) %>%
+                                               distinct(journal_id, .keep_all = TRUE) %>%
+                                               summarize(avg_pubs = mean(arts_count_journal, na.rm = TRUE))
+
+cits_lang_pubs_avg <- openalex_journals %>% filter(cits_prop >= 0.86, mainstream_lang == 0) %>%
+                                            pull(journal_id)
+cits_lang_pubs_avg <- articles_per_country %>% filter(journal_id %in% cits_lang_pubs_avg) %>%
+                                               distinct(journal_id, .keep_all = TRUE) %>%
+                                               summarize(avg_pubs = mean(arts_count_journal, na.rm = TRUE))
+
+# combine the average publications values into one dataframe for plotting
+figure_1B <- data.frame(Subset = c("Knowledge bridging journals", "Global references + local citations journals", "Global references + non-English language journals", "Local citations + non-English language journals"),
+                        Avg_Pubs = c(knowledge_bridging_pubs_avg$avg_pubs, refs_cits_pubs_avg$avg_pubs, refs_lang_pubs_avg$avg_pubs, cits_lang_pubs_avg$avg_pubs))
+
+figure_1B <- ggplot(figure_1B, aes(x = Subset, y = Avg_Pubs, fill = Subset)) +
+                    geom_bar(stat = "identity") +
+                    theme_minimal() +
+                    labs(x = "Journals subsets", y = "Publications average") +
+                    scale_fill_manual(values = c("#D35400", "#7BA9D9", "#F1C40F", "#4981BF")) +
+                    theme(axis.text.x = element_blank(),
+                          axis.ticks.x = element_blank(),
+                          axis.text.y = element_text(size = 16),
+                          axis.title.x = element_text(size = 18, face = "bold"),
+                          axis.title.y = element_text(size = 18, face = "bold"),
+                          legend.text = element_text(size = 14),
+                          legend.title = element_text(size = 16, face = "bold"),
+                          legend.position = "bottom")
+ggsave("~/Desktop/Local.Journals/figure_1B.png", width = 14, height = 10, dpi = 300)
 
 ### Figure 1C: Citations average of knowledge bridging journals and other related subsets
 # compute average citations for knowledge bridging journals, global refs + local cits journals, global refs + non-English lang journals, and local cits + non-English lang journals
@@ -507,18 +510,18 @@ figure_1C <- data.frame(Subset = c("Knowledge bridging journals", "Global refere
                         Avg_Cits = c(knowledge_bridging_cits_avg$avg_cits, refs_cits_cits_avg$avg_cits, refs_lang_cits_avg$avg_cits, cits_lang_cits_avg$avg_cits))
 
 figure_1C <- ggplot(figure_1C, aes(x = Subset, y = Avg_Cits, fill = Subset)) +
-  geom_bar(stat = "identity") +
-  theme_minimal() +
-  labs(x = "Journals subsets", y = "Citations average") +
-  scale_fill_manual(values = c("#D35400", "#7BA9D9", "#F1C40F", "#4981BF")) +
-  theme(axis.text.x = element_blank(),
-    axis.ticks.x = element_blank(),  # Remove x-axis ticks
-    axis.text.y = element_text(size = 16),  
-    axis.title.x = element_text(size = 18, face = "bold"),  
-    axis.title.y = element_text(size = 18, face = "bold"),  
-    legend.text = element_text(size = 14),  
-    legend.title = element_text(size = 16, face = "bold"),
-    legend.position = "bottom")
+                    geom_bar(stat = "identity") +
+                    theme_minimal() +
+                    labs(x = "Journals subsets", y = "Citations average") +
+                    scale_fill_manual(values = c("#D35400", "#7BA9D9", "#F1C40F", "#4981BF")) +
+                    theme(axis.text.x = element_blank(),
+                          axis.ticks.x = element_blank(),
+                          axis.text.y = element_text(size = 16),
+                          axis.title.x = element_text(size = 18, face = "bold"),
+                          axis.title.y = element_text(size = 18, face = "bold"),
+                          legend.text = element_text(size = 14),
+                          legend.title = element_text(size = 16, face = "bold"),
+                          legend.position = "bottom")
 ggsave("~/Desktop/Local.Journals/figure_1C.png", width = 14, height = 10, dpi = 300)
 
 
