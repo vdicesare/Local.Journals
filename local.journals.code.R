@@ -433,9 +433,7 @@ figure_1C <- ggplot(figure_1C, aes(x = Subset, y = Avg_Cits, fill = Subset)) +
 ggsave("~/Desktop/Local.Journals/figure_1C.png", width = 14, height = 10, dpi = 300)
 
 
-### Figure 2A: Countries publication number and share in knowledge bridging journals controlled by country size
-# SEGUIR POR ACÁ, ESTE CÓDIGO PUEDE SERVIR PARA CALCULAR LOS Nº PUBS Y % PUBS POR PAÍS
-
+### Figure 2: Countries publication number and share in knowledge bridging journals controlled by country size
 # combine with the knowledge bridging journals their articles count and total variables
 knowledge_bridging_journals_countries <- knowledge_bridging_journals %>% mutate(journal_id = as.character(journal_id)) %>%
                                                                          left_join(articles_per_country %>%
@@ -507,7 +505,7 @@ ggplot(knowledge_bridging_journals_countries %>%
         axis.title.y = element_text(size = 18, face = "bold"),
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 16, face = "bold"))
-ggsave("~/Desktop/Local.Journals/figure_2B.png", width = 16, height = 18, dpi = 300)
+ggsave("~/Desktop/Local.Journals/figure_2B.png", width = 16, height = 20, dpi = 300)
 
 
 ### Figure 3: Distribution of knowledge bridging journals by OpenAlex field and domain categories
