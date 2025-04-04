@@ -1,1 +1,1 @@
-# Local.Journals
+# Local journals’ communication functions
