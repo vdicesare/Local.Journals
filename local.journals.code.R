@@ -474,7 +474,7 @@ ggplot(knowledge_bridging_journals_countries %>%
   scale_fill_manual(values = c("North America" = "#7BA9D9", "Central America & the Caribbean" = "#F39C12",
                                "South America" = "#F1C40F", "Europe" = "#4981BF", "Asia" = "#D35400")) +
   theme_minimal() +
-  theme(axis.text.x = element_blank(),
+  theme(axis.text.x = element_text(size = 16),
         axis.ticks.x = element_blank(),
         axis.text.y = element_text(size = 16),
         axis.title.x = element_text(size = 18, face = "bold"),
@@ -498,14 +498,14 @@ ggplot(knowledge_bridging_journals_countries %>%
   scale_fill_manual(values = c("North America" = "#7BA9D9", "Central America & the Caribbean" = "#F39C12",
                                "South America" = "#F1C40F", "Europe" = "#4981BF", "Asia" = "#D35400", "Africa" = "#1F3A64")) + 
   theme_minimal() +
-  theme(axis.text.x = element_blank(),
+  theme(axis.text.x = element_text(size = 16),
         axis.ticks.x = element_blank(),
         axis.text.y = element_text(size = 16),
         axis.title.x = element_text(size = 18, face = "bold"),
         axis.title.y = element_text(size = 18, face = "bold"),
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 16, face = "bold"))
-ggsave("~/Desktop/Local.Journals/figure_2B.png", width = 16, height = 20, dpi = 300)
+ggsave("~/Desktop/Local.Journals/figure_2B.png", width = 14, height = 18, dpi = 300)
 
 
 ### Figure 3: Distribution of knowledge bridging journals by OpenAlex field and domain categories
