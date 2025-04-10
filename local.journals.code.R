@@ -378,7 +378,7 @@ cits_lang_pubs_avg <- articles_per_country %>% filter(journal_id %in% cits_lang_
                                                summarize(avg_pubs = mean(arts_count_journal, na.rm = TRUE))
 
 # combine the average publications values into one dataframe for plotting
-figure_1B <- data.frame(Subset = c("Knowledge bridging journals", "Global references + local citations journals", "Global references + non-English language journals", "Local citations + non-English language journals"),
+figure_1B <- data.frame(Subset = c("Knowledge bridgers", "Knowledge transferors", "Knowledge interpreters", "Knowledge rooters"),
                         Avg_Pubs = c(knowledge_bridging_pubs_avg$avg_pubs, refs_cits_pubs_avg$avg_pubs, refs_lang_pubs_avg$avg_pubs, cits_lang_pubs_avg$avg_pubs))
 
 figure_1B <- ggplot(figure_1B, aes(x = Subset, y = Avg_Pubs, fill = Subset)) +
@@ -388,12 +388,12 @@ figure_1B <- ggplot(figure_1B, aes(x = Subset, y = Avg_Pubs, fill = Subset)) +
                     scale_fill_manual(values = c("#D35400", "#7BA9D9", "#F1C40F", "#4981BF")) +
                     theme(axis.text.x = element_blank(),
                           axis.ticks.x = element_blank(),
-                          axis.text.y = element_text(size = 16),
-                          axis.title.x = element_text(size = 18, face = "bold"),
-                          axis.title.y = element_text(size = 18, face = "bold"),
-                          legend.text = element_text(size = 14),
-                          legend.title = element_text(size = 16, face = "bold"),
-                          legend.position = "bottom")
+                          axis.text.y = element_text(size = 22),
+                          axis.title.x = element_text(size = 24, face = "bold"),
+                          axis.title.y = element_text(size = 24, face = "bold"),
+                          legend.text = element_text(size = 20),
+                          legend.title = element_text(size = 22, face = "bold"),
+                          legend.position = "none")
 ggsave("~/Desktop/Local.Journals/figure_1B.png", width = 14, height = 10, dpi = 300)
 
 ### Figure 1C: Citations average of knowledge bridging journals and other related subsets
@@ -414,7 +414,7 @@ cits_lang_cits_avg <- openalex_journals %>% filter(cits_prop >= 0.86, mainstream
                                             summarize(avg_cits = mean(cits_total, na.rm = TRUE))
 
 # combine the average citations values into one dataframe for plotting
-figure_1C <- data.frame(Subset = c("Knowledge bridging journals", "Global references + local citations journals", "Global references + non-English language journals", "Local citations + non-English language journals"),
+figure_1C <- data.frame(Subset = c("Knowledge bridgers", "Knowledge transferors", "Knowledge interpreters", "Knowledge rooters"),
                         Avg_Cits = c(knowledge_bridging_cits_avg$avg_cits, refs_cits_cits_avg$avg_cits, refs_lang_cits_avg$avg_cits, cits_lang_cits_avg$avg_cits))
 
 figure_1C <- ggplot(figure_1C, aes(x = Subset, y = Avg_Cits, fill = Subset)) +
@@ -422,14 +422,14 @@ figure_1C <- ggplot(figure_1C, aes(x = Subset, y = Avg_Cits, fill = Subset)) +
                     theme_minimal() +
                     labs(x = "Journals subsets", y = "Citations average") +
                     scale_fill_manual(values = c("#D35400", "#7BA9D9", "#F1C40F", "#4981BF")) +
-                    theme(axis.text.x = element_blank(),
+                    theme(axis.text.x = element_text(size = 22),
                           axis.ticks.x = element_blank(),
-                          axis.text.y = element_text(size = 16),
-                          axis.title.x = element_text(size = 18, face = "bold"),
-                          axis.title.y = element_text(size = 18, face = "bold"),
-                          legend.text = element_text(size = 14),
-                          legend.title = element_text(size = 16, face = "bold"),
-                          legend.position = "bottom")
+                          axis.text.y = element_text(size = 22),
+                          axis.title.x = element_text(size = 24, face = "bold"),
+                          axis.title.y = element_text(size = 24, face = "bold"),
+                          legend.text = element_text(size = 20),
+                          legend.title = element_text(size = 22, face = "bold"),
+                          legend.position = "none")
 ggsave("~/Desktop/Local.Journals/figure_1C.png", width = 14, height = 10, dpi = 300)
 
 
@@ -463,7 +463,7 @@ knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %
 ggplot(knowledge_bridging_journals_countries %>%
          filter(!is.na(region)) %>%
          arrange(desc(arts_country_journal)) %>%
-         slice_head(n = 25),  
+         slice_head(n = 20),  
        aes(x = reorder(country, arts_country_journal), y = arts_country_journal, fill = factor(region, 
        levels = c("Asia", "Europe", "North America", "Central America & the Caribbean", "South America")))) +
   geom_col() +
@@ -487,7 +487,7 @@ ggsave("~/Desktop/Local.Journals/figure_2A.png", width = 14, height = 18, dpi = 
 ggplot(knowledge_bridging_journals_countries %>%
          filter(!is.na(region)) %>%
          arrange(desc(arts_share)) %>%
-         slice_head(n = 25),  
+         slice_head(n = 20),  
        aes(x = reorder(country, arts_share), y = arts_share, fill = factor(region, 
                                                                            levels = c("Africa", "Asia", "Europe", "North America", "Central America & the Caribbean", "South America")))) +
   geom_col() +
