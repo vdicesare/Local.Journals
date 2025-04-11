@@ -323,7 +323,7 @@ print(openalex_journals %>% filter(cits_prop >= 0.86) %>%
 knowledge_bridging_journals <- openalex_journals %>% filter(refs_prop < 0.42, cits_prop >= 0.86, mainstream_lang == 0)
 
 
-### Figure 1A: Intersections of conditions that allow for the identification of knowledge bridging journals (n = 1,461) within a larger OpenAlex dataset (N = 59,230)
+### Figure 2A: Intersections of conditions that allow for the identification of knowledge bridging journals (n = 1,461) within a larger OpenAlex dataset (N = 59,230)
 # compute journals sets dynamically
 langs <- openalex_journals %>% filter(mainstream_lang == 0) %>% pull(journal_id) %>% unique()
 refs <- openalex_journals %>% filter(refs_prop < 0.42) %>% pull(journal_id) %>% unique()
@@ -346,14 +346,14 @@ venn_data <- c("Non-English" = length(langs),
 fit <- euler(venn_data)
 
 # plot the diagram
-figure_1A <- plot(fit, 
+figure_2A <- plot(fit, 
                  fills = c("#F4FAFE", "#BED7F2", "#4981BF"),
                  labels = c("Non-English\nlanguages", "Global references", "Local citations"),
                  edges = FALSE, 
                  quantities = list(font = ifelse(venn_data == length(langs_refs_cits), 2, 1)))
-ggsave("~/Desktop/Local.Journals/figure_1A.png", plot = figure_1A, width = 6.5, height = 6, dpi = 300)
+ggsave("~/Desktop/Local.Journals/figure_2A.png", plot = figure_2A, width = 6.5, height = 6, dpi = 300)
 
-### Figure 1B: Publications average of knowledge bridging journals and other related subsets
+### Figure 2B: Publications average of knowledge bridging journals and other related subsets
 # compute average publications for knowledge bridging journals, global refs + local cits journals, global refs + non-English lang journals, and local cits + non-English lang journals
 knowledge_bridging_pubs_avg <- articles_per_country %>% filter(journal_id %in% knowledge_bridging_journals$journal_id) %>%
                                                         distinct(journal_id, .keep_all = TRUE) %>%
@@ -378,10 +378,10 @@ cits_lang_pubs_avg <- articles_per_country %>% filter(journal_id %in% cits_lang_
                                                summarize(avg_pubs = mean(arts_count_journal, na.rm = TRUE))
 
 # combine the average publications values into one dataframe for plotting
-figure_1B <- data.frame(Subset = c("Knowledge bridgers", "Knowledge transferors", "Knowledge interpreters", "Knowledge rooters"),
+figure_2B <- data.frame(Subset = c("S1", "S4", "S2", "S3"),
                         Avg_Pubs = c(knowledge_bridging_pubs_avg$avg_pubs, refs_cits_pubs_avg$avg_pubs, refs_lang_pubs_avg$avg_pubs, cits_lang_pubs_avg$avg_pubs))
 
-figure_1B <- ggplot(figure_1B, aes(x = Subset, y = Avg_Pubs, fill = Subset)) +
+figure_2B <- ggplot(figure_2B, aes(x = Subset, y = Avg_Pubs, fill = Subset)) +
                     geom_bar(stat = "identity") +
                     theme_minimal() +
                     labs(x = "Journals subsets", y = "Publications average") +
@@ -394,9 +394,9 @@ figure_1B <- ggplot(figure_1B, aes(x = Subset, y = Avg_Pubs, fill = Subset)) +
                           legend.text = element_text(size = 20),
                           legend.title = element_text(size = 22, face = "bold"),
                           legend.position = "none")
-ggsave("~/Desktop/Local.Journals/figure_1B.png", width = 14, height = 10, dpi = 300)
+ggsave("~/Desktop/Local.Journals/figure_2B.png", width = 14, height = 10, dpi = 300)
 
-### Figure 1C: Citations average of knowledge bridging journals and other related subsets
+### Figure 2C: Citations average of knowledge bridging journals and other related subsets
 # compute average citations for knowledge bridging journals, global refs + local cits journals, global refs + non-English lang journals, and local cits + non-English lang journals
 knowledge_bridging_cits_avg <- knowledge_bridging_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
                                                                summarize(avg_cits = mean(cits_total, na.rm = TRUE))
@@ -414,10 +414,10 @@ cits_lang_cits_avg <- openalex_journals %>% filter(cits_prop >= 0.86, mainstream
                                             summarize(avg_cits = mean(cits_total, na.rm = TRUE))
 
 # combine the average citations values into one dataframe for plotting
-figure_1C <- data.frame(Subset = c("Knowledge bridgers", "Knowledge transferors", "Knowledge interpreters", "Knowledge rooters"),
+figure_2C <- data.frame(Subset = c("S1", "S4", "S2", "S3"),
                         Avg_Cits = c(knowledge_bridging_cits_avg$avg_cits, refs_cits_cits_avg$avg_cits, refs_lang_cits_avg$avg_cits, cits_lang_cits_avg$avg_cits))
 
-figure_1C <- ggplot(figure_1C, aes(x = Subset, y = Avg_Cits, fill = Subset)) +
+figure_2C <- ggplot(figure_2C, aes(x = Subset, y = Avg_Cits, fill = Subset)) +
                     geom_bar(stat = "identity") +
                     theme_minimal() +
                     labs(x = "Journals subsets", y = "Citations average") +
@@ -430,10 +430,10 @@ figure_1C <- ggplot(figure_1C, aes(x = Subset, y = Avg_Cits, fill = Subset)) +
                           legend.text = element_text(size = 20),
                           legend.title = element_text(size = 22, face = "bold"),
                           legend.position = "none")
-ggsave("~/Desktop/Local.Journals/figure_1C.png", width = 14, height = 10, dpi = 300)
+ggsave("~/Desktop/Local.Journals/figure_2C.png", width = 14, height = 10, dpi = 300)
 
 
-### Figure 2: Countries publication number and share in knowledge bridging journals controlled by country size
+### Figure 3: Countries publication number and share in knowledge bridging journals controlled by country size
 # combine with the knowledge bridging journals their articles count and total variables
 knowledge_bridging_journals_countries <- knowledge_bridging_journals %>% mutate(journal_id = as.character(journal_id)) %>%
                                                                          left_join(articles_per_country %>%
@@ -459,7 +459,7 @@ knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %
                                                                                                                      "Uruguay", "Venezuela") ~ "South America",
                                                                                                       TRUE ~ continent))
 
-# plot figure 2A
+# plot figure 3A
 ggplot(knowledge_bridging_journals_countries %>%
          filter(!is.na(region)) %>%
          arrange(desc(arts_country_journal)) %>%
@@ -481,9 +481,9 @@ ggplot(knowledge_bridging_journals_countries %>%
         axis.title.y = element_text(size = 18, face = "bold"),
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 16, face = "bold"))
-ggsave("~/Desktop/Local.Journals/figure_2A.png", width = 14, height = 18, dpi = 300)
+ggsave("~/Desktop/Local.Journals/figure_3A.png", width = 14, height = 18, dpi = 300)
 
-# plot figure 2B
+# plot figure 3B
 ggplot(knowledge_bridging_journals_countries %>%
          filter(!is.na(region)) %>%
          arrange(desc(arts_share)) %>%
@@ -505,10 +505,10 @@ ggplot(knowledge_bridging_journals_countries %>%
         axis.title.y = element_text(size = 18, face = "bold"),
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 16, face = "bold"))
-ggsave("~/Desktop/Local.Journals/figure_2B.png", width = 14, height = 18, dpi = 300)
+ggsave("~/Desktop/Local.Journals/figure_3B.png", width = 14, height = 18, dpi = 300)
 
 
-### Figure 3: Distribution of knowledge bridging journals by OpenAlex field and domain categories
+### Figure 4: Distribution of knowledge bridging journals by OpenAlex field and domain categories
 # subset the knowledge bridging journals meeting all three conditions for subsequent plotting
 knowledge_bridging_journals <- openalex_journals %>% filter(refs_prop < 0.42, cits_prop >= 0.86, mainstream_lang == 0)
 
@@ -537,4 +537,4 @@ ggplot(na.omit(knowledge_bridging_journals_fields), aes(x = field, y = jours_sha
   theme_minimal() +
   labs(x = "Field", y = "Journals share", fill = "Domain") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-ggsave("~/Desktop/Local.Journals/figure_3.png", width = 10, height = 6, dpi = 300)
+ggsave("~/Desktop/Local.Journals/figure_4.png", width = 10, height = 6, dpi = 300)
