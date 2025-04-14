@@ -459,18 +459,21 @@ knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %
                                                                                                                      "Uruguay", "Venezuela") ~ "South America",
                                                                                                       TRUE ~ continent))
 
-# plot figure 3A
-ggplot(knowledge_bridging_journals_countries %>%
-         filter(!is.na(region)) %>%
-         arrange(desc(arts_country_journal)) %>%
-         slice_head(n = 20),  
-       aes(x = reorder(country, arts_country_journal), y = arts_country_journal, fill = factor(region, 
-       levels = c("Asia", "Europe", "North America", "Central America & the Caribbean", "South America")))) +
+# convert to long format so that faceting is possible in figure 3A
+knowledge_bridging_journals_countries_long3A <- knowledge_bridging_journals_countries %>% filter(!is.na(region)) %>%
+                                                                                        arrange(desc(arts_country_journal)) %>%
+                                                                                        slice_head(n = 20) %>%
+                                                                                        pivot_longer(cols = c(arts_country_journal, arts_share),
+                                                                                        names_to = "metric",
+                                                                                        values_to = "value")
+
+# plot faceted figure 3A
+ggplot(knowledge_bridging_journals_countries_long3A, aes(x = reorder(country, value), y = value,
+                      fill = factor(region, levels = c("Asia", "Europe", "North America", "Central America & the Caribbean", "South America")))) +
   geom_col() +
-  coord_flip() +  
-  labs(x = "Country",
-       y = "Publications total",
-       fill = "Region") +
+  coord_flip() +
+  facet_wrap(~ metric, scales = "free_x", ncol = 2, labeller = as_labeller(c(arts_country_journal = "Publications total", arts_share = "Publications share")), strip.position = "bottom") +
+  labs(x = "Country", y = NULL, fill = "Region") +
   scale_fill_manual(values = c("North America" = "#7BA9D9", "Central America & the Caribbean" = "#F39C12",
                                "South America" = "#F1C40F", "Europe" = "#4981BF", "Asia" = "#D35400")) +
   theme_minimal() +
@@ -480,23 +483,58 @@ ggplot(knowledge_bridging_journals_countries %>%
         axis.title.x = element_text(size = 18, face = "bold"),
         axis.title.y = element_text(size = 18, face = "bold"),
         legend.text = element_text(size = 14),
-        legend.title = element_text(size = 16, face = "bold"))
-ggsave("~/Desktop/Local.Journals/figure_3A.png", width = 14, height = 18, dpi = 300)
+        legend.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(size = 16, face = "bold"),
+        strip.placement = "outside")
+ggsave("~/Desktop/Local.Journals/figure_f3A.png", width = 18, height = 12, dpi = 300)
 
-# plot figure 3B
-ggplot(knowledge_bridging_journals_countries %>%
-         filter(!is.na(region)) %>%
-         arrange(desc(arts_share)) %>%
-         slice_head(n = 20),  
-       aes(x = reorder(country, arts_share), y = arts_share, fill = factor(region, 
-                                                                           levels = c("Africa", "Asia", "Europe", "North America", "Central America & the Caribbean", "South America")))) +
+# plot figure 3A
+#ggplot(knowledge_bridging_journals_countries %>%
+#         filter(!is.na(region)) %>%
+#         arrange(desc(arts_country_journal)) %>%
+#         slice_head(n = 20),  
+#       aes(x = reorder(country, arts_country_journal), y = arts_country_journal, fill = factor(region, 
+#       levels = c("Asia", "Europe", "North America", "Central America & the Caribbean", "South America")))) +
+#  geom_col() +
+#  coord_flip() +  
+#  labs(x = "Country",
+#       y = "Publications total",
+#       fill = "Region") +
+#  scale_fill_manual(values = c("North America" = "#7BA9D9", "Central America & the Caribbean" = "#F39C12",
+#                               "South America" = "#F1C40F", "Europe" = "#4981BF", "Asia" = "#D35400")) +
+#  theme_minimal() +
+#  theme(axis.text.x = element_text(size = 16),
+#        axis.ticks.x = element_blank(),
+#        axis.text.y = element_text(size = 16),
+#        axis.title.x = element_text(size = 18, face = "bold"),
+#        axis.title.y = element_text(size = 18, face = "bold"),
+#        legend.text = element_text(size = 14),
+#        legend.title = element_text(size = 16, face = "bold"))
+#ggsave("~/Desktop/Local.Journals/figure_3A.png", width = 14, height = 18, dpi = 300)
+
+# convert to long format so that faceting is possible in figure 3B
+ordered_countries <- knowledge_bridging_journals_countries %>% filter(!is.na(region)) %>%
+                                                               arrange(desc(arts_share)) %>%
+                                                               slice_head(n = 20) %>%
+                                                               pull(country)
+
+knowledge_bridging_journals_countries_long3B <- knowledge_bridging_journals_countries %>% mutate(country = factor(country, levels = rev(ordered_countries)))
+knowledge_bridging_journals_countries_long3B <- knowledge_bridging_journals_countries_long3B %>% filter(!is.na(region), country %in% ordered_countries) %>%
+                                                                                                 pivot_longer(cols = c(arts_country_journal, arts_share),
+                                                                                                 names_to = "metric",
+                                                                                                 values_to = "value") %>%
+                                                                                                 mutate(metric = factor(metric, levels = c("arts_country_journal", "arts_share")))
+
+# plot faceted figure 3B
+ggplot(knowledge_bridging_journals_countries_long3B, aes(x = country, y = value,
+                                                         fill = factor(region, levels = c("Africa", "Asia", "Europe", "North America", "Central America & the Caribbean", "South America")))) +
   geom_col() +
-  coord_flip() +  
-  labs(x = "Country",
-       y = "Publications share",
-       fill = "Region") +
-  scale_fill_manual(values = c("North America" = "#7BA9D9", "Central America & the Caribbean" = "#F39C12",
-                               "South America" = "#F1C40F", "Europe" = "#4981BF", "Asia" = "#D35400", "Africa" = "#1F3A64")) + 
+  coord_flip() +
+  facet_wrap(~ metric, scales = "free_x", ncol = 2, strip.position = "bottom", labeller = as_labeller(c(arts_country_journal = "Publications total",
+                                                                                                        arts_share = "Publications share"))) +
+  labs(x = "Country", y = NULL, fill = "Region") +
+  scale_fill_manual(values = c("North America" = "#7BA9D9", "Central America & the Caribbean" = "#F39C12", "South America" = "#F1C40F",
+                               "Europe" = "#4981BF", "Asia" = "#D35400", "Africa" = "#1F3A64")) + 
   theme_minimal() +
   theme(axis.text.x = element_text(size = 16),
         axis.ticks.x = element_blank(),
@@ -504,8 +542,34 @@ ggplot(knowledge_bridging_journals_countries %>%
         axis.title.x = element_text(size = 18, face = "bold"),
         axis.title.y = element_text(size = 18, face = "bold"),
         legend.text = element_text(size = 14),
-        legend.title = element_text(size = 16, face = "bold"))
-ggsave("~/Desktop/Local.Journals/figure_3B.png", width = 14, height = 18, dpi = 300)
+        legend.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(size = 16, face = "bold"),
+        strip.placement = "outside")
+ggsave("~/Desktop/Local.Journals/figure_f3B.png", width = 18, height = 12, dpi = 300)
+
+# plot figure 3B
+#ggplot(knowledge_bridging_journals_countries %>%
+#         filter(!is.na(region)) %>%
+#         arrange(desc(arts_share)) %>%
+#         slice_head(n = 20),  
+#       aes(x = reorder(country, arts_share), y = arts_share, fill = factor(region, 
+#                                                                           levels = c("Africa", "Asia", "Europe", "North America", "Central America & the Caribbean", "South America")))) +
+#  geom_col() +
+#  coord_flip() +  
+#  labs(x = "Country",
+#       y = "Publications share",
+#       fill = "Region") +
+#  scale_fill_manual(values = c("North America" = "#7BA9D9", "Central America & the Caribbean" = "#F39C12",
+#                               "South America" = "#F1C40F", "Europe" = "#4981BF", "Asia" = "#D35400", "Africa" = "#1F3A64")) + 
+#  theme_minimal() +
+#  theme(axis.text.x = element_text(size = 16),
+#        axis.ticks.x = element_blank(),
+#        axis.text.y = element_text(size = 16),
+#        axis.title.x = element_text(size = 18, face = "bold"),
+#        axis.title.y = element_text(size = 18, face = "bold"),
+#        legend.text = element_text(size = 14),
+#        legend.title = element_text(size = 16, face = "bold"))
+#ggsave("~/Desktop/Local.Journals/figure_3B.png", width = 14, height = 18, dpi = 300)
 
 
 ### Figure 4: Distribution of knowledge bridging journals by OpenAlex field and domain categories
@@ -535,6 +599,6 @@ ggplot(na.omit(knowledge_bridging_journals_fields), aes(x = field, y = jours_sha
                               "Decision Sciences", "Arts and Humanities", "Economics, Econometrics and Finance", "Business, Management and Accounting", "Psychology", "Social Sciences")) +
   scale_fill_manual(values = c("Health Sciences" = "#D35400", "Life Sciences" = "#7BA9D9", "Physical Sciences" = "#F1C40F", "Social Sciences" = "#4981BF")) +
   theme_minimal() +
-  labs(x = "Field", y = "Journals share", fill = "Domain") +
+  labs(x = "Field", y = "Share of knowledge bridging journals", fill = "Domain") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ggsave("~/Desktop/Local.Journals/figure_4.png", width = 10, height = 6, dpi = 300)
