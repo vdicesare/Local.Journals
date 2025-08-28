@@ -363,26 +363,26 @@ ggsave("~/Desktop/Local.Journals/figure_2A.png", plot = figure_2A, width = 6.5, 
 ### Figure 2B: Publications average of knowledge bridging journals and other related subsets
 # compute average publications for knowledge bridging journals, global refs + local cits journals, global refs + non-English lang journals, and local cits + non-English lang journals
 knowledge_bridging_pubs_avg <- articles_per_country %>% filter(journal_id %in% knowledge_bridging_journals$journal_id) %>%
-  distinct(journal_id, .keep_all = TRUE) %>%
-  summarize(avg_pubs = mean(arts_count_journal, na.rm = TRUE))
+                                                        distinct(journal_id, .keep_all = TRUE) %>%
+                                                        summarize(avg_pubs = mean(arts_count_journal, na.rm = TRUE))
 
 refs_cits_pubs_avg <- openalex_journals %>% filter(refs_prop < 0.42, cits_prop >= 0.86) %>%
-  pull(journal_id)
+                                            pull(journal_id)
 refs_cits_pubs_avg <- articles_per_country %>% filter(journal_id %in% refs_cits_pubs_avg) %>%
-  distinct(journal_id, .keep_all = TRUE) %>%
-  summarize(avg_pubs = mean(arts_count_journal, na.rm = TRUE))
+                                               distinct(journal_id, .keep_all = TRUE) %>%
+                                               summarize(avg_pubs = mean(arts_count_journal, na.rm = TRUE))
 
 refs_lang_pubs_avg <- openalex_journals %>% filter(refs_prop < 0.42, mainstream_lang == 0) %>%
-  pull(journal_id)
+                                            pull(journal_id)
 refs_lang_pubs_avg <- articles_per_country %>% filter(journal_id %in% refs_lang_pubs_avg) %>%
-  distinct(journal_id, .keep_all = TRUE) %>%
-  summarize(avg_pubs = mean(arts_count_journal, na.rm = TRUE))
+                                               distinct(journal_id, .keep_all = TRUE) %>%
+                                               summarize(avg_pubs = mean(arts_count_journal, na.rm = TRUE))
 
 cits_lang_pubs_avg <- openalex_journals %>% filter(cits_prop >= 0.86, mainstream_lang == 0) %>%
-  pull(journal_id)
+                                            pull(journal_id)
 cits_lang_pubs_avg <- articles_per_country %>% filter(journal_id %in% cits_lang_pubs_avg) %>%
-  distinct(journal_id, .keep_all = TRUE) %>%
-  summarize(avg_pubs = mean(arts_count_journal, na.rm = TRUE))
+                                               distinct(journal_id, .keep_all = TRUE) %>%
+                                               summarize(avg_pubs = mean(arts_count_journal, na.rm = TRUE))
 
 # combine the average publications values into one dataframe for plotting
 figure_2B <- data.frame(Subset = c("S1", "S4", "S2", "S3"),
@@ -406,19 +406,19 @@ ggsave("~/Desktop/Local.Journals/figure_2B.png", width = 14, height = 10, dpi = 
 ### Figure 2C: Citations average of knowledge bridging journals and other related subsets
 # compute average citations for knowledge bridging journals, global refs + local cits journals, global refs + non-English lang journals, and local cits + non-English lang journals
 knowledge_bridging_cits_avg <- knowledge_bridging_journals %>% distinct(journal_id, .keep_all = TRUE) %>%
-  summarize(avg_cits = mean(cits_total, na.rm = TRUE))
+                                                               summarize(avg_cits = mean(cits_total, na.rm = TRUE))
 
 refs_cits_cits_avg <- openalex_journals %>% filter(refs_prop < 0.42, cits_prop >= 0.86) %>%
-  distinct(journal_id, .keep_all = TRUE) %>%
-  summarize(avg_cits = mean(cits_total, na.rm = TRUE))
+                                            distinct(journal_id, .keep_all = TRUE) %>%
+                                            summarize(avg_cits = mean(cits_total, na.rm = TRUE))
 
 refs_lang_cits_avg <- openalex_journals %>% filter(refs_prop < 0.42, mainstream_lang == 0) %>%
-  distinct(journal_id, .keep_all = TRUE) %>%
-  summarize(avg_cits = mean(cits_total, na.rm = TRUE))
+                                            distinct(journal_id, .keep_all = TRUE) %>%
+                                            summarize(avg_cits = mean(cits_total, na.rm = TRUE))
 
 cits_lang_cits_avg <- openalex_journals %>% filter(cits_prop >= 0.86, mainstream_lang == 0) %>%
-  distinct(journal_id, .keep_all = TRUE) %>%
-  summarize(avg_cits = mean(cits_total, na.rm = TRUE))
+                                            distinct(journal_id, .keep_all = TRUE) %>%
+                                            summarize(avg_cits = mean(cits_total, na.rm = TRUE))
 
 # combine the average citations values into one dataframe for plotting
 figure_2C <- data.frame(Subset = c("S1", "S4", "S2", "S3"),
@@ -440,20 +440,20 @@ figure_2C <- ggplot(figure_2C, aes(x = Subset, y = Avg_Cits, fill = Subset)) +
 ggsave("~/Desktop/Local.Journals/figure_2C.png", width = 14, height = 10, dpi = 300)
 
 
-### Figure 3: Countries publication number and share in knowledge bridging journals controlled by country size
+### Figure 3: Countries publication number and share in knowledge bridging journals by country size
 # combine with the knowledge bridging journals their articles count and total variables
 knowledge_bridging_journals_countries <- knowledge_bridging_journals %>% mutate(journal_id = as.character(journal_id)) %>%
-  left_join(articles_per_country %>%
-              mutate(journal_id = as.character(journal_id)), by = "journal_id") %>%
-  select(journal_id, country, arts_country_journal, arts_count_country) %>%
-  distinct()
+                                                                         left_join(articles_per_country %>%
+                                                                         mutate(journal_id = as.character(journal_id)), by = "journal_id") %>%
+                                                                         select(journal_id, country, arts_country_journal, arts_count_country) %>%
+                                                                         distinct()
 
 # summarise articles count, total count (within 2023 production) and share per country
 knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% group_by(country) %>%
-  summarise(arts_country_journal = sum(arts_country_journal, na.rm = TRUE),
-            arts_count_country = first(arts_count_country, na.rm = TRUE),
-            arts_share = arts_country_journal / arts_count_country) %>%
-  ungroup()
+                                                                                   summarise(arts_country_journal = sum(arts_country_journal, na.rm = TRUE),
+                                                                                   arts_count_country = first(arts_count_country, na.rm = TRUE),
+                                                                                   arts_share = arts_country_journal / arts_count_country) %>%
+                                                                                   ungroup()
 
 # add continent variable to group countries when plotting
 knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %>% mutate(continent = countrycode(country, origin = "country.name", destination = "continent"),
@@ -468,11 +468,11 @@ knowledge_bridging_journals_countries <- knowledge_bridging_journals_countries %
 
 # convert to long format so that faceting is possible in figure 3A
 knowledge_bridging_journals_countries_long3A <- knowledge_bridging_journals_countries %>% filter(!is.na(region)) %>%
-  arrange(desc(arts_country_journal)) %>%
-  slice_head(n = 20) %>%
-  pivot_longer(cols = c(arts_country_journal, arts_share),
-               names_to = "metric",
-               values_to = "value")
+                                                                                          arrange(desc(arts_country_journal)) %>%
+                                                                                          slice_head(n = 20) %>%
+                                                                                          pivot_longer(cols = c(arts_country_journal, arts_share),
+                                                                                          names_to = "metric",
+                                                                                          values_to = "value")
 
 # plot faceted figure 3A
 ggplot(knowledge_bridging_journals_countries_long3A, aes(x = reorder(country, value), y = value,
@@ -497,16 +497,16 @@ ggsave("~/Desktop/Local.Journals/figure_f3A.png", width = 18, height = 12, dpi =
 
 # convert to long format so that faceting is possible in figure 3B
 ordered_countries <- knowledge_bridging_journals_countries %>% filter(!is.na(region)) %>%
-  arrange(desc(arts_share)) %>%
-  slice_head(n = 20) %>%
-  pull(country)
+                                                               arrange(desc(arts_share)) %>%
+                                                               slice_head(n = 20) %>%
+                                                               pull(country)
 
 knowledge_bridging_journals_countries_long3B <- knowledge_bridging_journals_countries %>% mutate(country = factor(country, levels = rev(ordered_countries)))
 knowledge_bridging_journals_countries_long3B <- knowledge_bridging_journals_countries_long3B %>% filter(!is.na(region), country %in% ordered_countries) %>%
-  pivot_longer(cols = c(arts_country_journal, arts_share),
-               names_to = "metric",
-               values_to = "value") %>%
-  mutate(metric = factor(metric, levels = c("arts_country_journal", "arts_share")))
+                                                                                                 pivot_longer(cols = c(arts_country_journal, arts_share),
+                                                                                                 names_to = "metric",
+                                                                                                 values_to = "value") %>%
+                                                                                                 mutate(metric = factor(metric, levels = c("arts_country_journal", "arts_share")))
 
 # plot faceted figure 3B
 ggplot(knowledge_bridging_journals_countries_long3B, aes(x = country, y = value,
@@ -530,33 +530,61 @@ ggplot(knowledge_bridging_journals_countries_long3B, aes(x = country, y = value,
         strip.placement = "outside")
 ggsave("~/Desktop/Local.Journals/figure_f3B.png", width = 18, height = 12, dpi = 300)
 
-### Figure 4: Distribution of knowledge bridging journals by OpenAlex field and domain categories
-# subset the knowledge bridging journals meeting all three conditions for subsequent plotting
-knowledge_bridging_journals <- openalex_journals %>% filter(refs_prop < 0.42, cits_prop >= 0.86, mainstream_lang == 0)
 
+### Figure 4: Distribution of knowledge bridging journals by OpenAlex field and domain categories
 # prepare field and domain data for each knowledge bridging journal
 knowledge_bridging_journals_fields <- knowledge_bridging_journals %>% select(journal_id, journal_name, field) %>%
-  separate_rows(field, sep = "; ") %>%
-  distinct(journal_id, journal_name, field)
+                                                                      separate_rows(field, sep = "; ") %>%
+                                                                      distinct(journal_id, journal_name, field)
 openalex_fields_domains <- openalex_topics %>% select(field_name, domain_name) %>%
-  distinct()
+                                               distinct()
 knowledge_bridging_journals_fields <- knowledge_bridging_journals_fields %>% left_join(openalex_fields_domains, by = c("field" = "field_name"))
 
-# compute journals count and share per field and domain
-knowledge_bridging_journals_fields <- knowledge_bridging_journals_fields %>% group_by(domain_name, field) %>%
-  summarise(jours_count = n_distinct(journal_id),
-            jours_share = jours_count / 1271, .groups = 'drop') %>%
-  ungroup()
+# compute journals fractional count per field
+knowledge_bridging_journals_fields <- knowledge_bridging_journals_fields %>% group_by(journal_id) %>%
+                                                                             mutate(n_fields = n_distinct(field)) %>%      
+                                                                             ungroup() %>%
+                                                                             mutate(jours_frac_count = 1 / n_fields) %>%   
+                                                                             group_by(field, domain_name) %>%
+                                                                             summarise(jours_frac_count = sum(jours_frac_count), .groups = "drop") %>%
+                                                                             filter(!is.na(domain_name))
 
-# plot the grouped barplot
-ggplot(na.omit(knowledge_bridging_journals_fields), aes(x = field, y = jours_share, fill = domain_name)) +
+# compute the journals share per field
+knowledge_bridging_journals_fields <- knowledge_bridging_journals_fields %>% mutate(jours_share = jours_frac_count / sum(jours_frac_count))
+
+# replicate these processes in all of OpenAlex journals to compare in the plot the overall distribution of fields with the knowledge bridging distribution of fields
+openalex_journals_fields <- openalex_journals %>% select(journal_id, journal_name, field) %>%
+                                                  separate_rows(field, sep = "; ") %>%
+                                                  distinct(journal_id, journal_name, field)
+
+openalex_journals_fields <- openalex_journals_fields %>% left_join(openalex_fields_domains, by = c("field" = "field_name"))
+
+openalex_journals_fields <- openalex_journals_fields %>% group_by(journal_id) %>%
+                                                         mutate(n_fields = n_distinct(field)) %>%      
+                                                         ungroup() %>%
+                                                         mutate(jours_frac_count = 1 / n_fields) %>%   
+                                                         group_by(field, domain_name) %>%
+                                                         summarise(jours_frac_count = sum(jours_frac_count), .groups = "drop") %>%
+                                                         filter(!is.na(domain_name))
+
+openalex_journals_fields <- openalex_journals_fields %>% mutate(jours_share = jours_frac_count / sum(jours_frac_count))
+
+# plot the grouped barplot with a black line for comparison between all OpenAlex journals and
+ggplot(knowledge_bridging_journals_fields, aes(x = field, y = jours_share, fill = domain_name)) +
   geom_bar(stat = "identity", position = "dodge") +
+  geom_line(data = openalex_journals_fields %>% select(field, jours_share, domain_name),
+            aes(x = field, y = jours_share, color = "All OpenAlex journals", group = 1),
+            size = 1) +
+  geom_point(data = openalex_journals_fields %>% select(field, jours_share, domain_name),
+             aes(x = field, y = jours_share, color = "All OpenAlex journals"),
+             size = 2) +
+  scale_color_manual(name = "", values = c("All OpenAlex journals" = "black")) +
   scale_x_discrete(limits = c("Veterinary", "Dentistry", "Nursing", "Medicine", "Health Professions",
                               "Pharmacology, Toxicology and Pharmaceutics", "Immunology and Microbiology", "Neuroscience", "Biochemistry, Genetics and Molecular Biology", "Agricultural and Biological Sciences",
                               "Chemical Engineering", "Mathematics", "Physics and Astronomy", "Chemistry", "Materials Science", "Energy", "Earth and Planetary Sciences", "Engineering", "Environmental Science", "Computer Science",
                               "Decision Sciences", "Arts and Humanities", "Economics, Econometrics and Finance", "Business, Management and Accounting", "Psychology", "Social Sciences")) +
   scale_fill_manual(values = c("Health Sciences" = "#D35400", "Life Sciences" = "#7BA9D9", "Physical Sciences" = "#F1C40F", "Social Sciences" = "#4981BF")) +
   theme_minimal() +
-  labs(x = "Field", y = "Share of knowledge bridging journals", fill = "Domain") +
+  labs(x = "Field", y = "Fractional share of knowledge bridging journals", fill = "Domain") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ggsave("~/Desktop/Local.Journals/figure_4.png", width = 10, height = 6, dpi = 300)
