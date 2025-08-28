@@ -8,3 +8,5 @@ Victoria Di Césare (1)*, Rodrigo Costas (2) and Nicolas Robinson-Garcia (1)
 *Corresponding author: vdicesare@ugr.es
 
 Abstract: This study explores the knowledge bridging communication function of non-mainstream journals, originally proposed by Chavarro et al. (2017). Based on their definition, and incorporating a multidimensional conception of locality (Di Césare & Robinson-Garcia, 2024), we identify journals that perform this function within a large 2023 OpenAlex dataset. Our findings reveal a predominance of such journals in Asian and South American countries. Large scientific producers like Brazil and Russia stand out as significant contributors to knowledge bridging journals. The Social Sciences domain leads article production, followed closely by the Physical Sciences. The study highlights the value of non-mainstream journals as knowledge bridging sources beyond traditional metrics and underscores the need for greater recognition of their role in scholarly communication.
+
+Oral presentation given at the 29th Annual International Conference on Science and Technology Indicators (STI ENID), 2025, University of Bristol (UK).
