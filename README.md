@@ -1,9 +1,9 @@
 # Testing the knowledge bridging function of non-mainstream journals in scholarly communication
-Victoria Di Césare (1)*, Nicolas Robinson-Garcia (1) and Rodrigo Costas (2)
+Victoria Di Césare (1)*, Rodrigo Costas (2) and Nicolas Robinson-Garcia (1) 
 
 (1) EC3 Research Group, Unit for Computational Humanities and Social Sciences (U-CHASS), University of Granada (Spain)
 
-(2) Centre for Science and Technology Studies (CWTS), Leiden University (The Netherlands)
+(2) Centre for Science and Technology Studies (CWTS), Leiden University (The Netherlands); DSI-NRF Centre of Excellence in Scientometrics and Science, Technology and Innovation Policy (SciSTIP), Stellenbosch University (South Africa)
 
 *Corresponding author: vdicesare@ugr.es
 
