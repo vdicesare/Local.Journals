@@ -572,13 +572,6 @@ openalex_journals_fields <- openalex_journals_fields %>% mutate(jours_share = jo
 # plot the grouped barplot with a black line for comparison between all OpenAlex journals and
 ggplot(knowledge_bridging_journals_fields, aes(x = field, y = jours_share, fill = domain_name)) +
   geom_bar(stat = "identity", position = "dodge") +
-  geom_line(data = openalex_journals_fields %>% select(field, jours_share, domain_name),
-            aes(x = field, y = jours_share, color = "All OpenAlex journals", group = 1),
-            size = 1) +
-  geom_point(data = openalex_journals_fields %>% select(field, jours_share, domain_name),
-             aes(x = field, y = jours_share, color = "All OpenAlex journals"),
-             size = 2) +
-  scale_color_manual(name = "", values = c("All OpenAlex journals" = "black")) +
   scale_x_discrete(limits = c("Veterinary", "Dentistry", "Nursing", "Medicine", "Health Professions",
                               "Pharmacology, Toxicology and Pharmaceutics", "Immunology and Microbiology", "Neuroscience", "Biochemistry, Genetics and Molecular Biology", "Agricultural and Biological Sciences",
                               "Chemical Engineering", "Mathematics", "Physics and Astronomy", "Chemistry", "Materials Science", "Energy", "Earth and Planetary Sciences", "Engineering", "Environmental Science", "Computer Science",
